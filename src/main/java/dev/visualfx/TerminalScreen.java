@@ -45,23 +45,34 @@ public final class TerminalScreen extends Screen {
             default->{}
         }}
     }
+    private enum Feature {
+        TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
+        TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR}),
+        DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
+        HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
+        MENU("Меню",new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
+        final String title; final Setting[] settings;
+        Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
+    }
     private enum Category {
-        COMBAT("Combat",0xFF00CC,new Setting[]{Setting.TARGET,Setting.HIT,Setting.HIT_STRENGTH}),
-        MISC("Misc",0x39FF14,new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET}),
-        VISUAL("Visual",0x00F5FF,new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.DEATH,Setting.DEATH_MODE,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING});
-        final String title; final int color; final Setting[] settings;
-        Category(String title,int color,Setting[] settings){this.title=title;this.color=color;this.settings=settings;}
+        COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
+        MISC("Misc",0x39FF14,new Feature[]{Feature.MENU}),
+        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
+        final String title; final int color; final Feature[] features;
+        Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
     }
     private static final String[] PALETTES={"Зелёный","Розовый","Голубой","Фиолетовый","Перелив"};
     private static final Style FONT=Style.EMPTY;
     private static Category lastCategory=Category.VISUAL;
+    private static Feature lastFeature=Feature.TARGET_ESP;
     private Category category=lastCategory;
+    private Feature feature=lastFeature;
     private Setting dragging;
     private long previous=System.nanoTime(),resetDeadline;
     private double visibility;
-    private boolean closing,previewDeath,previewHud;
+    private boolean closing;
     private int scrollOffset;
-    private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth;
+    private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth,visibleRows;
     private final EffectPreview preview=new EffectPreview();
     public TerminalScreen(){super(Component.literal("VisualFX terminal"));}
     @Override public boolean isPauseScreen(){return false;}
@@ -86,8 +97,10 @@ public final class TerminalScreen extends Screen {
     private void layout(){
         panelWidth=Math.min(740,width-12);
         settingsWidth=panelWidth>=400?panelWidth-160:panelWidth;
-        rowHeight=Math.min(27,Math.max(18,(height-103)/7));
-        panelHeight=103+7*rowHeight;
+        rowHeight=24;
+        visibleRows=Math.clamp((height-135)/rowHeight,3,8);
+        scrollOffset=Math.clamp(scrollOffset,0,Math.max(0,feature.settings.length-visibleRows));
+        panelHeight=127+visibleRows*rowHeight;
         left=(width-panelWidth)/2;top=Math.max(2,(height-panelHeight)/2)+(int)((1-visibility)*12);
     }
     private String value(Setting s,Config c){return switch(s){
@@ -112,7 +125,7 @@ public final class TerminalScreen extends Screen {
         g.fill(left-1,top-1,left+panelWidth+1,top+panelHeight+1,tint(category.color,.65));
         g.fill(left,top,left+panelWidth,top+panelHeight,tint(0x070B10,c.menuOpacity));
         g.fill(left,top,left+panelWidth,top+27,tint(0x101923,c.menuOpacity));
-        text(g,"VisualFX / Настройки",left+10,top+9,0x39FF14);
+        fitted(g,"VisualFX / "+feature.title,left+10,top+9,0x39FF14,panelWidth-90);
         text(g,"[RSHIFT]",left+panelWidth-64,top+9,0xFF00CC);
         int tabWidth=(panelWidth-16)/3;
         for(Category tab:Category.values()){
@@ -122,9 +135,17 @@ public final class TerminalScreen extends Screen {
             if(tab==category)g.fill(x,top+52,x+tabWidth-3,top+54,tint(tab.color,1));
             text(g,tab.title,x+9,top+38,tab==category?tab.color:0x91A5AC);
         }
+        int featureWidth=(panelWidth-16)/category.features.length;
+        for(int i=0;i<category.features.length;i++){
+            Feature item=category.features[i];int x=left+8+i*featureWidth;
+            boolean hover=mx>=x&&mx<x+featureWidth-3&&my>=top+57&&my<top+78;
+            g.fill(x,top+57,x+featureWidth-3,top+78,tint(item==feature?0x20333E:hover?0x18242E:0x0C141C,c.menuOpacity));
+            if(item==feature)g.fill(x,top+77,x+featureWidth-3,top+79,tint(category.color,1));
+            fitted(g,item.title,x+9,top+63,item==feature?0xFFFFFF:0x91A5AC,featureWidth-16);
+        }
         Setting hovered=null;
-        for(int i=scrollOffset;i<Math.min(category.settings.length,scrollOffset+7);i++){
-            Setting s=category.settings[i]; int y=top+64+(i-scrollOffset)*rowHeight;
+        for(int i=scrollOffset;i<Math.min(feature.settings.length,scrollOffset+visibleRows);i++){
+            Setting s=feature.settings[i]; int y=top+88+(i-scrollOffset)*rowHeight;
             boolean hover=mx>=left+8&&mx<left+settingsWidth-8&&my>=y-3&&my<y+rowHeight-4;
             if(hover)hovered=s;
             g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
@@ -139,12 +160,12 @@ public final class TerminalScreen extends Screen {
                 g.fill(x,y+11,x+(int)((end-x)*f),y+13,tint(category.color,1));
             }
         }
-        if(settingsWidth<panelWidth){
-            if(hovered==Setting.HUD||hovered==Setting.HUD_COLOR||(hovered==null&&previewHud))
-                TargetHud.preview(g,font,left+settingsWidth+2,top+61,150,c,now/1e9,visibility);
-            else preview.draw(g,font,left+settingsWidth+2,top+61,150,panelHeight-102,c,now/1e9,visibility,previewDeath||hovered==Setting.DEATH||hovered==Setting.DEATH_MODE);
+        if(settingsWidth<panelWidth)drawPreview(g,c,left+settingsWidth+2,top+85,150,panelHeight-126,now/1e9);
+        else {
+            int used=Math.min(feature.settings.length,visibleRows);
+            int y=top+88+used*rowHeight;
+            drawPreview(g,c,left+10,y,panelWidth-20,top+panelHeight-37-y,now/1e9);
         }
-        else if(category!=Category.VISUAL)preview.draw(g,font,left+10,top+65+3*rowHeight,panelWidth-20,panelHeight-108-3*rowHeight,c,now/1e9,visibility,previewDeath||hovered==Setting.DEATH||hovered==Setting.DEATH_MODE);
         String hint=hovered==null?"Колесо мыши — прокрутка. Настройки сохраняются автоматически.":hovered.help;
         if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),mx,my);
         // Wrap the help text using the same font as the panel.
@@ -156,6 +177,22 @@ public final class TerminalScreen extends Screen {
         double f=Math.clamp((x-(left+settingsWidth/2))/(settingsWidth/2.-18),0,1);
         s.set(VisualFX.config,s.min+f*(s.max-s.min));
     }
+    private void selectFeature(Feature selected){
+        dragging=null;scrollOffset=0;resetDeadline=0;
+        lastFeature=feature=selected;VisualFX.config.save();
+    }
+    private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
+        if(h<48)return;
+        switch(feature){
+            case TARGET_HUD->{if(h>=90)TargetHud.preview(g,font,x,y,w,c,time,visibility);}
+            case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT);
+            case MENU->{
+                text(g,"Настройки меню",x+6,y+8,0x39FF14);
+                var lines=font.split(Component.literal("Параметры сохраняются автоматически. Right Shift — закрыть меню."),w-12);
+                for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
+            }
+        }
+    }
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubled){
         if(closing||event.button()!=InputConstants.MOUSE_BUTTON_LEFT)return false;
         double x=event.x(),y=event.y();
@@ -163,16 +200,23 @@ public final class TerminalScreen extends Screen {
             int tabWidth=(panelWidth-16)/3;
             for(Category tab:Category.values()){
                 int start=left+8+tab.ordinal()*tabWidth;
-                if(x>=start&&x<start+tabWidth-3){dragging=null;scrollOffset=0;previewDeath=false;previewHud=false;resetDeadline=0;lastCategory=category=tab;VisualFX.config.save();return true;}
+                if(x>=start&&x<start+tabWidth-3){lastCategory=category=tab;selectFeature(tab.features[0]);return true;}
             }
         }
-        for(int i=scrollOffset;i<Math.min(category.settings.length,scrollOffset+7);i++){
-            Setting s=category.settings[i];int rowTop=top+61+(i-scrollOffset)*rowHeight;
+        if(y>=top+57&&y<top+79){
+            int featureWidth=(panelWidth-16)/category.features.length;
+            for(int i=0;i<category.features.length;i++){
+                int start=left+8+i*featureWidth;
+                if(x>=start&&x<start+featureWidth-3){selectFeature(category.features[i]);return true;}
+            }
+        }
+        for(int i=scrollOffset;i<Math.min(feature.settings.length,scrollOffset+visibleRows);i++){
+            Setting s=feature.settings[i];int rowTop=top+85+(i-scrollOffset)*rowHeight;
             if(x<left+8||x>=left+settingsWidth-8||y<rowTop||y>=rowTop+rowHeight-1)continue;
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
-            previewDeath=s==Setting.DEATH||s==Setting.DEATH_MODE;
-            previewHud=s==Setting.HUD||s==Setting.HUD_COLOR;
+
+
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
                                 case HUD->c.targetHud=!c.targetHud;
@@ -192,8 +236,8 @@ public final class TerminalScreen extends Screen {
         return false;
     }
     @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical){
-        if(closing||dragging!=null||x<left||x>=left+settingsWidth||y<top+57||y>=top+panelHeight-35||vertical==0)return false;
-        scrollOffset=Math.clamp(scrollOffset+(vertical<0?1:-1),0,Math.max(0,category.settings.length-7));
+        if(closing||dragging!=null||x<left||x>=left+settingsWidth||y<top+81||y>=top+panelHeight-35||vertical==0)return false;
+        scrollOffset=Math.clamp(scrollOffset+(vertical<0?1:-1),0,Math.max(0,feature.settings.length-visibleRows));
         return true;
     }
     @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){
@@ -205,6 +249,7 @@ public final class TerminalScreen extends Screen {
         dragging=null;VisualFX.config.save();return true;
     }
 }
+
 
 
 
