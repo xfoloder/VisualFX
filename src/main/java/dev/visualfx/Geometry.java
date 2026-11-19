@@ -4,7 +4,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix4f;
 
 /** Emissive colored tube geometry; outer shells provide a cheap bounded glow. */
-public final class Geometry {
+public class Geometry {
     VertexConsumer v; Matrix4f matrix; Config c;
     double t,alpha,hit;
     void begin(VertexConsumer v,Matrix4f matrix,Config c,double t,double alpha,double hit){this.v=v;this.matrix=matrix;this.c=c;this.t=t;this.alpha=alpha;this.hit=hit*c.hitStrength;}
@@ -35,6 +35,7 @@ public final class Geometry {
         line(x,y-size,z,x-Math.cos(a+.8)*size,y,z-Math.sin(a+.8)*size,.01,a+.5);
     }
 }
+
 
 
 

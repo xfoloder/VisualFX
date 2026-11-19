@@ -12,19 +12,19 @@ import java.util.Locale;
 
 public final class TerminalScreen extends Screen {
     private enum Setting {
-        TARGET("Target ESP", "Highlight the player under your crosshair."),
-        HIT("Hit Effect", "Flash and shockwave on your local attack."),
-        HIT_STRENGTH("Hit intensity", "Strength of the hit flash and energy shards.", .1, 2),
-        MODE("ESP mode", "Click to cycle through four effect styles."),
-        COLOR("Color palette", "Four neon colors or an animated spectrum."),
-        SPEED("Rotation speed", "Animation speed multiplier.", .1, 3),
-        RADIUS("Ring size", "Radius of the effect around the target.", .4, 1.6),
-        GLOW("Glow intensity", "Opacity of the outer neon shells.", 0, 1),
-        SHARDS("Shard count", "Bounded particle geometry budget.", 0, 48),
-        SMOOTHING("Smoothing", "Fade time: higher values produce slower transitions.", .05, .7),
-        OPACITY("Menu opacity", "Opacity of this terminal panel.", .25, 1),
-        ANIMATIONS("Menu animations", "Animate opening and closing the terminal."),
-        RESET("Reset settings", "Click twice to restore all default settings.");
+        TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
+        HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
+        HIT_STRENGTH("Сила вспышки", "Яркость вспышки и размер осколков при ударе.", .1, 2),
+        MODE("Вид эффекта", "Нажмите, чтобы выбрать один из четырёх эффектов."),
+        COLOR("Цвет", "Четыре неоновых цвета и переливающийся градиент."),
+        SPEED("Скорость", "Скорость вращения и движения эффекта.", .1, 3),
+        RADIUS("Размер колец", "Радиус эффекта вокруг выбранного игрока.", .4, 1.6),
+        GLOW("Свечение", "Интенсивность мягкого свечения вокруг линий.", 0, 1),
+        SHARDS("Осколки", "Количество энергетических осколков: от 0 до 48.", 0, 48),
+        SMOOTHING("Плавность", "Чем выше значение, тем медленнее появление и исчезновение.", .05, .7),
+        OPACITY("Непрозрачность", "Непрозрачность фона меню.", .25, 1),
+        ANIMATIONS("Анимации меню", "Плавное открытие и закрытие меню."),
+        RESET("Сброс настроек", "Нажмите дважды за три секунды для сброса всех настроек.");
         final String label,help; final double min,max;
         Setting(String label,String help){this(label,help,0,0);}
         Setting(String label,String help,double min,double max){this.label=label;this.help=help;this.min=min;this.max=max;}
@@ -48,15 +48,16 @@ public final class TerminalScreen extends Screen {
         final String title; final int color; final Setting[] settings;
         Category(String title,int color,Setting[] settings){this.title=title;this.color=color;this.settings=settings;}
     }
-    private static final String[] PALETTES={"Acid Green","Neon Pink","Electric Cyan","Neon Purple","Spectrum"};
-    private static final Style FONT=Style.EMPTY.withFont(new FontDescription.Resource(Identifier.withDefaultNamespace("uniform")));
+    private static final String[] PALETTES={"Зелёный","Розовый","Голубой","Фиолетовый","Перелив"};
+    private static final Style FONT=Style.EMPTY;
     private static Category lastCategory=Category.VISUAL;
     private Category category=lastCategory;
     private Setting dragging;
     private long previous=System.nanoTime(),resetDeadline;
     private double visibility;
     private boolean closing;
-    private int left,top,panelWidth,rowHeight,panelHeight;
+    private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth;
+    private final EffectPreview preview=new EffectPreview();
     public TerminalScreen(){super(Component.literal("VisualFX terminal"));}
     @Override public boolean isPauseScreen(){return false;}
     @Override public void onClose(){dragging=null;VisualFX.config.save();closing=true;}
@@ -64,20 +65,26 @@ public final class TerminalScreen extends Screen {
     @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){}
     private int tint(int rgb,double opacity){return ((int)(Math.clamp(opacity*visibility,0,1)*255)<<24)|rgb;}
     private void text(GuiGraphicsExtractor g,String value,int x,int y,int color){g.text(font,Component.literal(value).setStyle(FONT),x,y,tint(color,1),false);}
+    private void fitted(GuiGraphicsExtractor g,String value,int x,int y,int color,int available){
+        if(font.width(value)>available)value=font.plainSubstrByWidth(value,Math.max(0,available-font.width("…")))+"…";
+        text(g,value,x,y,color);
+    }
     private void layout(){
-        panelWidth=Math.min(520,width-12);
+        panelWidth=Math.min(740,width-12);
+        settingsWidth=panelWidth>=400?panelWidth-160:panelWidth;
         rowHeight=Math.min(27,Math.max(18,(height-103)/7));
         panelHeight=103+7*rowHeight;
         left=(width-panelWidth)/2;top=Math.max(2,(height-panelHeight)/2)+(int)((1-visibility)*12);
     }
     private String value(Setting s,Config c){return switch(s){
-        case TARGET->c.enabled?"ON":"OFF"; case HIT->c.hitEffect?"ON":"OFF";
-        case MODE->Effects.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
-        case SHARDS->Integer.toString(c.shards); case SMOOTHING->Math.round(c.smoothing*1000)+" ms";
+        case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
+        case MODE->EffectPreview.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
+        case SHARDS->Integer.toString(c.shards); case SMOOTHING->Math.round(c.smoothing*1000)+" мс";
         case GLOW,OPACITY->Math.round(s.value(c)*100)+"%";
-        case ANIMATIONS->c.menuAnimations?"ON":"OFF";
-        case RESET->System.nanoTime()<resetDeadline?"Click to confirm":"Restore defaults";
-        default->String.format(Locale.ROOT,"%.2fx",s.value(c));
+        case ANIMATIONS->c.menuAnimations?"Вкл.":"Выкл.";
+        case RESET->System.nanoTime()<resetDeadline?"Подтвердить":"Сбросить";
+        case RADIUS->String.format(Locale.ROOT,"%.2f м",c.radius);
+        default->String.format(Locale.ROOT,"%.2f×",s.value(c));
     };}
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
         Config c=VisualFX.config;
@@ -89,7 +96,7 @@ public final class TerminalScreen extends Screen {
         g.fill(left-1,top-1,left+panelWidth+1,top+panelHeight+1,tint(category.color,.65));
         g.fill(left,top,left+panelWidth,top+panelHeight,tint(0x070B10,c.menuOpacity));
         g.fill(left,top,left+panelWidth,top+27,tint(0x101923,c.menuOpacity));
-        text(g,"visualfx@neon:~$ ./control",left+10,top+9,0x39FF14);
+        text(g,"VisualFX / Настройки",left+10,top+9,0x39FF14);
         text(g,"[RSHIFT]",left+panelWidth-64,top+9,0xFF00CC);
         int tabWidth=(panelWidth-16)/3;
         for(Category tab:Category.values()){
@@ -102,27 +109,30 @@ public final class TerminalScreen extends Screen {
         Setting hovered=null;
         for(int i=0;i<category.settings.length;i++){
             Setting s=category.settings[i]; int y=top+64+i*rowHeight;
-            boolean hover=mx>=left+8&&mx<left+panelWidth-8&&my>=y-3&&my<y+rowHeight-4;
+            boolean hover=mx>=left+8&&mx<left+settingsWidth-8&&my>=y-3&&my<y+rowHeight-4;
             if(hover)hovered=s;
-            g.fill(left+8,y-3,left+panelWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
+            g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
             if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(category.color,1));
-            text(g,s.label,left+18,y,0xA7BBC3);
-            text(g,value(s,c),left+panelWidth/2,y,s==Setting.COLOR?c.color(0):category.color);
+            fitted(g,s.label,left+18,y,0xD0DCE3,settingsWidth/2-26);
+            fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
             if(s.slider()){
-                int x=left+panelWidth/2,end=left+panelWidth-18;
+                int x=left+settingsWidth/2,end=left+settingsWidth-18;
                 double f=(s.value(c)-s.min)/(s.max-s.min);
                 g.fill(x,y+11,end,y+13,tint(0x25353F,1));
                 g.fill(x,y+11,x+(int)((end-x)*f),y+13,tint(category.color,1));
             }
         }
-        String hint=hovered==null?"Click a switch or drag a slider. Changes saved automatically.":hovered.help;
+        if(settingsWidth<panelWidth)preview.draw(g,font,left+settingsWidth+2,top+61,150,panelHeight-102,c,now/1e9,visibility);
+        else if(category!=Category.VISUAL)preview.draw(g,font,left+10,top+65+3*rowHeight,panelWidth-20,panelHeight-108-3*rowHeight,c,now/1e9,visibility);
+        String hint=hovered==null?"Выберите параметр. Изменения сохраняются автоматически.":hovered.help;
+        if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),mx,my);
         // Wrap the help text using the same font as the panel.
         var lines=font.split(Component.literal(hint).setStyle(FONT),panelWidth-24);
         int y=top+panelHeight-31;
         for(int i=0;i<Math.min(2,lines.size());i++)g.text(font,lines.get(i),left+12,y+i*10,tint(0x829BA4,1),false);
     }
     private void slider(Setting s,double x){
-        double f=Math.clamp((x-(left+panelWidth/2))/(panelWidth/2.-18),0,1);
+        double f=Math.clamp((x-(left+settingsWidth/2))/(settingsWidth/2.-18),0,1);
         s.set(VisualFX.config,s.min+f*(s.max-s.min));
     }
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubled){
@@ -137,7 +147,7 @@ public final class TerminalScreen extends Screen {
         }
         for(int i=0;i<category.settings.length;i++){
             Setting s=category.settings[i];int rowTop=top+61+i*rowHeight;
-            if(x<left+8||x>=left+panelWidth-8||y<rowTop||y>=rowTop+rowHeight-1)continue;
+            if(x<left+8||x>=left+settingsWidth-8||y<rowTop||y>=rowTop+rowHeight-1)continue;
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
             if(s.slider()){dragging=s;slider(s,x);}
@@ -161,3 +171,5 @@ public final class TerminalScreen extends Screen {
         dragging=null;VisualFX.config.save();return true;
     }
 }
+
+
