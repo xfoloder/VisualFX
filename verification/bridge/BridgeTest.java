@@ -9,9 +9,12 @@ public final class BridgeTest {
    try{SoundCloudPlayer.validate(invalid);throw new AssertionError("Accepted invalid URL");}catch(IllegalArgumentException expected){}
   }
   assert SoundCloudPlayer.validate("https://soundcloud.com/artist/sets/playlist").contains("/sets/");
-  var p=SoundCloudPlayer.INSTANCE;var http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+  var p=SoundCloudPlayer.INSTANCE;
+  assert p.status()!=null : "First screen open must have a status before the browser connects";
+  assert !p.status().ready()&&p.status().paused();
+  var http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
   try{
-   p.start();String base=p.localUrl();
+   p.start();assert p.status()!=null;assert !p.status().ready();String base=p.localUrl();
    var page=http.send(HttpRequest.newBuilder(URI.create(base)).GET().build(),HttpResponse.BodyHandlers.ofString());
    assert page.statusCode()==200;assert page.body().contains("SC.Widget");assert !page.body().contains("__BASE_JSON__");
    var bad=http.send(HttpRequest.newBuilder(URI.create(base)).header("Origin","https://evil.example").GET().build(),HttpResponse.BodyHandlers.ofString());assert bad.statusCode()==403;

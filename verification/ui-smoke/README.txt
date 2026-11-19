@@ -1,0 +1,3 @@
+Интеграционный тест для dev-среды. Класс SoundCloudUiSmoke компилируется отдельно с classpath проекта и упаковывается в отдельный временный Fabric-мод (client entrypoint dev.visualfx.SoundCloudUiSmoke; id visualfx_ui_smoke; depends visualfx).
+В тестовом запуске мод подключается через system property fabric.addMods. Он не входит в установочный JAR VisualFX.
+Тест после загрузки TitleScreen открывает SoundCloudScreen без запуска браузера/сервера, ждёт 80 клиентских тиков, закрывает экран и повторяет открытие ещё на 80 тиков. При успехе пишет UI_SMOKE_PASS и завершает клиент штатно. Это проверка создания и отрисовки экрана, а не фактического нажатия кнопки мышью или аудиопотока SoundCloud.
