@@ -12,6 +12,10 @@ import java.util.Locale;
 
 public final class TerminalScreen extends Screen {
     private enum Setting {
+        AIM("Aim Assist", "Включите и удерживайте левый Alt, чтобы доводить прицел до видимого игрока."),
+        AIM_RANGE("Дальность", "Максимальное расстояние до точки наведения в блоках.",2,8),
+        AIM_ANGLE("Угол захвата", "Максимальный угол между прицелом и целью.",3,30),
+        AIM_SPEED("Скорость доводки", "Максимальная скорость поворота прицела в градусах в секунду.",20,180),
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
         HIT_MODE("Вид удара", "Выберите один из шести разных эффектов удара."),
@@ -58,6 +62,7 @@ public final class TerminalScreen extends Screen {
         Setting(String label,String help,double min,double max){this.label=label;this.help=help;this.min=min;this.max=max;}
         boolean slider(){return max>min;}
         double value(Config c){return switch(this){
+            case AIM_RANGE->c.aimRange;case AIM_ANGLE->c.aimAngle;case AIM_SPEED->c.aimSpeed;
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
             case HIT_DURATION->c.hitDuration;
             case ECHO_LENGTH->c.echoLength;case ECHO_GHOSTS->c.echoGhosts;case ECHO_INTENSITY->c.echoIntensity;
@@ -68,6 +73,7 @@ public final class TerminalScreen extends Screen {
             default->0;
         };}
         void set(Config c,double value){switch(this){
+            case AIM_RANGE->c.aimRange=value;case AIM_ANGLE->c.aimAngle=value;case AIM_SPEED->c.aimSpeed=value;
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
             case HIT_DURATION->c.hitDuration=value;
             case ECHO_LENGTH->c.echoLength=value;case ECHO_GHOSTS->c.echoGhosts=(int)Math.round(value);case ECHO_INTENSITY->c.echoIntensity=value;
@@ -80,6 +86,7 @@ public final class TerminalScreen extends Screen {
         }}
     }
     private enum Feature {
+        AIM_ASSIST("Aim Assist",new Setting[]{Setting.AIM,Setting.AIM_RANGE,Setting.AIM_ANGLE,Setting.AIM_SPEED}),
         NEON_ECHO("Neon Echo",new Setting[]{Setting.ECHO,Setting.ECHO_COLOR,Setting.COLOR_EDIT,Setting.ECHO_LENGTH,Setting.ECHO_GHOSTS,Setting.ECHO_INTENSITY,Setting.ECHO_PULSE}),
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.COLOR_EDIT,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.COLOR_EDIT,Setting.HUD_SCALE,Setting.HUD_POSITION}),
@@ -93,7 +100,7 @@ public final class TerminalScreen extends Screen {
         Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
     }
     private enum Category {
-        COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
+        COMBAT("Combat",0xFF00CC,new Feature[]{Feature.AIM_ASSIST,Feature.HIT_EFFECT}),
         MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU}),
         VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
@@ -151,6 +158,9 @@ public final class TerminalScreen extends Screen {
         top=6+(int)(Math.max(0,canvasHeight-panelHeight-12)*c.menuY)+(int)((1-visibility)*12);
     }
     private String value(Setting s,Config c){return switch(s){
+        case AIM->c.aimAssist?"Вкл.":"Выкл.";
+        case AIM_RANGE->String.format(Locale.ROOT,"%.1f бл.",c.aimRange);
+        case AIM_ANGLE->Math.round(c.aimAngle)+"°"; case AIM_SPEED->Math.round(c.aimSpeed)+"°/с";
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
         case ECHO->c.neonEcho?"Вкл.":"Выкл.";case ECHO_PULSE->c.echoPulse?"Вкл.":"Выкл.";
         case ECHO_COLOR->PALETTES[c.echoPalette];case ECHO_GHOSTS->Integer.toString(c.echoGhosts);
@@ -250,6 +260,7 @@ public final class TerminalScreen extends Screen {
     private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
         if(h<48)return;
         switch(feature){
+            case AIM_ASSIST->text(g,"Удерживайте левый Alt",x+6,y+8,0xFF00CC);
             case SOUND_CLOUD->{
                 text(g,"SoundCloud",x+6,y+8,0xFF7733);
                 String info=SoundCloudPlayer.INSTANCE.connected()?"Браузер подключён. Откройте плеер для управления.":"Звук через браузер. Откройте плеер и вставьте ссылку SoundCloud.";
@@ -311,6 +322,7 @@ public final class TerminalScreen extends Screen {
 
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
+                case AIM->c.aimAssist=!c.aimAssist;
                 case MUSIC_DISCONNECT->SoundCloudPlayer.INSTANCE.stop();
                 case MENU_CENTER->{c.menuX=.5;c.menuY=.5;}
                 case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}

@@ -11,6 +11,8 @@ public final class Config {
     public boolean enabled = true, hitEffect = true;
     public int hitMode=0;
     public double hitDuration=.6;
+    public boolean aimAssist=false;
+    public double aimRange=4.5, aimAngle=12, aimSpeed=90;
     public int mode = 0, palette = 0, shards = 18;
     public double speed = 1, radius = .85, glow = .7, smoothing = .22;
     public boolean menuAnimations = true;
@@ -41,6 +43,7 @@ public final class Config {
     public void clamp() {
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,7);
         hitMode=Math.floorMod(hitMode,HitEffects.NAMES.length);hitDuration=limit(hitDuration,.25,1.2);
+        aimRange=limit(aimRange,2,8);aimAngle=limit(aimAngle,3,30);aimSpeed=limit(aimSpeed,20,180);
         shards = Math.clamp(shards,0,48);
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);
