@@ -17,6 +17,10 @@ public final class Config {
     public int deathMode = 0;
     public boolean targetHud = true;
     public int hudPalette = 2;
+    public double hudScale=1,hudX=.65,hudY=.6;
+    public boolean watermark=true;
+    public int watermarkPalette=0;
+    public double watermarkScale=1,watermarkX=0,watermarkY=0;
     public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
     public void clamp() {
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,5);
@@ -26,6 +30,9 @@ public final class Config {
         menuOpacity = limit(menuOpacity,.25,1); hitStrength = limit(hitStrength,.1,2);
         deathMode = Math.floorMod(deathMode,2);
         hudPalette = Math.floorMod(hudPalette,5);
+        hudScale=limit(hudScale,.5,2);hudX=limit(hudX,0,1);hudY=limit(hudY,0,1);
+        watermarkPalette=Math.floorMod(watermarkPalette,5);
+        watermarkScale=limit(watermarkScale,.5,2);watermarkX=limit(watermarkX,0,1);watermarkY=limit(watermarkY,0,1);
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {

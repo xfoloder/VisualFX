@@ -17,6 +17,12 @@ public final class TerminalScreen extends Screen {
         HIT_STRENGTH("Сила вспышки", "Яркость вспышки и размер осколков при ударе.", .1, 2),
         HUD("TargetHUD", "Показывает имя и здоровье игрока под прицелом."),
         HUD_COLOR("Палитра TargetHUD", "Нажмите цветной образец. Последний образец — переливающийся градиент."),
+        HUD_SCALE("Размер TargetHUD", "Масштаб панели цели от 50% до 200%.",.5,2),
+        HUD_POSITION("Положение HUD", "Откройте редактор и перетащите панель мышью. Колесо меняет размер."),
+        WATERMARK("Watermark", "Показывает название VisualFX и версию Minecraft."),
+        WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
+        WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
+        WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
         DEATH("Death Effect", "Эффект при смерти цели, выбранной сейчас или до двух секунд назад."),
         DEATH_MODE("Эффект смерти", "Ascend — восхождение света. Exit Hell — огненный разлом."),
         MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
@@ -35,11 +41,13 @@ public final class TerminalScreen extends Screen {
         boolean slider(){return max>min;}
         double value(Config c){return switch(this){
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
+            case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
             case GLOW->c.glow; case SHARDS->c.shards; case SMOOTHING->c.smoothing; case OPACITY->c.menuOpacity;
             default->0;
         };}
         void set(Config c,double value){switch(this){
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
+            case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
             case GLOW->c.glow=value; case SHARDS->c.shards=(int)Math.round(value);
             case SMOOTHING->c.smoothing=value; case OPACITY->c.menuOpacity=value;
             default->{}
@@ -47,7 +55,8 @@ public final class TerminalScreen extends Screen {
     }
     private enum Feature {
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
-        TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR}),
+        TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.HUD_SCALE,Setting.HUD_POSITION}),
+        WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
         MENU("Меню",new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
@@ -56,7 +65,7 @@ public final class TerminalScreen extends Screen {
     }
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
-        MISC("Misc",0x39FF14,new Feature[]{Feature.MENU}),
+        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.MENU}),
         VISUAL("Visual",0x00F5FF,new Feature[]{Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
@@ -105,6 +114,9 @@ public final class TerminalScreen extends Screen {
     }
     private String value(Setting s,Config c){return switch(s){
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
+        case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
+        case HUD_POSITION,WATERMARK_POSITION->"Переместить";
+        case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
         case DEATH->c.deathEffect?"Вкл.":"Выкл."; case DEATH_MODE->DeathEffectSystem.NAMES[c.deathMode];
         case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
         case MODE->Effects.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
@@ -151,7 +163,7 @@ public final class TerminalScreen extends Screen {
             g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
             if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(category.color,1));
             fitted(g,s.label,left+18,y,0xD0DCE3,settingsWidth/2-26);
-            if(s==Setting.HUD_COLOR)palette(g,left+settingsWidth/2,y-1,settingsWidth/2-16,c.hudPalette,now/1e9);
+            if(s==Setting.HUD_COLOR||s==Setting.WATERMARK_COLOR)palette(g,left+settingsWidth/2,y-1,settingsWidth/2-16,s==Setting.HUD_COLOR?c.hudPalette:c.watermarkPalette,now/1e9);
             else fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
             if(s.slider()){
                 int x=left+settingsWidth/2,end=left+settingsWidth-18;
@@ -185,6 +197,10 @@ public final class TerminalScreen extends Screen {
         if(h<48)return;
         switch(feature){
             case TARGET_HUD->{if(h>=90)TargetHud.preview(g,font,x,y,w,c,time,visibility);}
+            case WATERMARK->{
+                text(g,"Watermark",x+6,y+8,0x39FF14);
+                Watermark.draw(g,font,x+4,y+30,Math.min(1,(w-8)/172.0),c.watermarkPalette,time);
+            }
             case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT);
             case MENU->{
                 text(g,"Настройки меню",x+6,y+8,0x39FF14);
@@ -215,14 +231,20 @@ public final class TerminalScreen extends Screen {
             if(x<left+8||x>=left+settingsWidth-8||y<rowTop||y>=rowTop+rowHeight-1)continue;
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
+            if(s==Setting.HUD_POSITION||s==Setting.WATERMARK_POSITION){
+                VisualFX.config.save();minecraft.gui.setScreen(new HudEditorScreen(this,s==Setting.WATERMARK_POSITION));return true;
+            }
 
 
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
                                 case HUD->c.targetHud=!c.targetHud;
-                case HUD_COLOR->{
+                case WATERMARK->c.watermark=!c.watermark;
+                case HUD_COLOR,WATERMARK_COLOR->{
                     int start=left+settingsWidth/2,swatchWidth=(settingsWidth/2-16)/5;
-                    c.hudPalette=x>=start?Math.clamp((int)((x-start)/Math.max(1,swatchWidth)),0,4):(c.hudPalette+1)%5;
+                    int current=s==Setting.HUD_COLOR?c.hudPalette:c.watermarkPalette;
+                    int selected=x>=start?Math.clamp((int)((x-start)/Math.max(1,swatchWidth)),0,4):(current+1)%5;
+                    if(s==Setting.HUD_COLOR)c.hudPalette=selected;else c.watermarkPalette=selected;
                 }
                 case DEATH->c.deathEffect=!c.deathEffect; case DEATH_MODE->c.deathMode=(c.deathMode+1)%2;
                 case TARGET->c.enabled=!c.enabled; case HIT->c.hitEffect=!c.hitEffect;

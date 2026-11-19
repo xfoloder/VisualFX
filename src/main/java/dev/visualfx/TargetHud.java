@@ -12,6 +12,7 @@ import java.util.Locale;
 /** HUD receives only name/health snapshots; it does not retain the target entity. */
 final class TargetHud {
     private ClientLevel world;
+    private final HudPlacement placement=new HudPlacement();
     private String name="",healthText="";
     private int entityId=-1;
     private double health,shownHealth,visibility;
@@ -36,10 +37,10 @@ final class TargetHud {
         shownHealth+=(health-shownHealth)*(1-Math.exp(-dt/.15));
         Minecraft c=Minecraft.getInstance();
         if(c.level==null||!VisualFX.config.targetHud||visibility<.01||c.gui.screen()!=null)return;
-        int w=Math.min(180,g.guiWidth()-16);
-        int x=Math.clamp(g.guiWidth()/2+24,8,g.guiWidth()-w-8);
-        int y=Math.clamp(g.guiHeight()/2+30,8,g.guiHeight()-64);
-        drawCard(g,c.font,x,y,w,name,healthText,shownHealth,VisualFX.config.hudPalette,now/1e9,visibility);
+        placement.update(g.guiWidth(),g.guiHeight(),false);
+        g.pose().pushMatrix();g.pose().translate((float)placement.x,(float)placement.y).scale((float)placement.scale,(float)placement.scale);
+        drawCard(g,c.font,0,0,180,name,healthText,shownHealth,VisualFX.config.hudPalette,now/1e9,visibility);
+        g.pose().popMatrix();
     }
     private static int tint(int rgb,double alpha){return ((int)(Math.clamp(alpha,0,1)*255)<<24)|rgb;}
     static void drawCard(GuiGraphicsExtractor g,Font font,int x,int y,int w,String name,String hp,double health,int palette,double time,double alpha){
@@ -65,3 +66,4 @@ final class TargetHud {
         drawCard(g,font,x+4,y+30,width-8,"Игрок", "16.0 / 20.0 HP",.8,c.hudPalette,seconds,alpha);
     }
 }
+
