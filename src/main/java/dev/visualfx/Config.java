@@ -11,12 +11,15 @@ public final class Config {
     public boolean enabled = true, hitEffect = true;
     public int mode = 0, palette = 0, shards = 18;
     public double speed = 1, radius = .85, glow = .7, smoothing = .22;
+    public boolean menuAnimations = true;
+    public double menuOpacity = .85, hitStrength = 1;
     public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
     public void clamp() {
         mode = Math.floorMod(mode,4); palette = Math.floorMod(palette,5);
         shards = Math.clamp(shards,0,48);
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);
+        menuOpacity = limit(menuOpacity,.25,1); hitStrength = limit(hitStrength,.1,2);
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {

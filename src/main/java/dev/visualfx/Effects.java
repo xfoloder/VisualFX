@@ -42,10 +42,11 @@ public final class Effects {
         }
     }
     static void impact(Geometry g,double h,double life){double age=1-life;
-        g.ring(.08,g.c.radius+age*2,0,0,.035*life);
-        for(int i=0;i<24;i++)g.shard(i*2.39996,h*.5+Math.sin(i*4.1)*age*1.6,g.c.radius+age*2,.13*life);
+        g.ring(.08,g.c.radius+age*2,0,0,.035*life*g.c.hitStrength);
+        for(int i=0;i<24;i++)g.shard(i*2.39996,h*.5+Math.sin(i*4.1)*age*1.6,g.c.radius+age*2,.13*life*g.c.hitStrength);
     }
 }
+
 
 
 

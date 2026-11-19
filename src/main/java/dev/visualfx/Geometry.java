@@ -7,7 +7,7 @@ import org.joml.Matrix4f;
 public final class Geometry {
     VertexConsumer v; Matrix4f matrix; Config c;
     double t,alpha,hit;
-    void begin(VertexConsumer v,Matrix4f matrix,Config c,double t,double alpha,double hit){this.v=v;this.matrix=matrix;this.c=c;this.t=t;this.alpha=alpha;this.hit=hit;}
+    void begin(VertexConsumer v,Matrix4f matrix,Config c,double t,double alpha,double hit){this.v=v;this.matrix=matrix;this.c=c;this.t=t;this.alpha=alpha;this.hit=hit*c.hitStrength;}
     void end(){v=null;matrix=null;c=null;}
     void vertex(double x,double y,double z,int color,int a){v.addVertex(matrix,(float)x,(float)y,(float)z).setColor((a<<24)|color);}
     void line(double x,double y,double z,double X,double Y,double Z,double width,double phase) {
@@ -35,6 +35,7 @@ public final class Geometry {
         line(x,y-size,z,x-Math.cos(a+.8)*size,y,z-Math.sin(a+.8)*size,.01,a+.5);
     }
 }
+
 
 
 
