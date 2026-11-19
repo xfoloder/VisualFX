@@ -28,6 +28,7 @@ public final class Config {
     public int watermarkPalette=0;
     public double watermarkScale=1,watermarkX=0,watermarkY=0;
     public boolean optimization=false;
+    public boolean rustGeometry=false;
     public int optimizationPreset=0;
     public Optimizer.Snapshot optimizationBackup;
     public String soundCloudUrl="";
@@ -92,6 +93,7 @@ public final class Config {
         return ColorStyle.preset(palette,phase);
     }
 }
+
 
 
 
