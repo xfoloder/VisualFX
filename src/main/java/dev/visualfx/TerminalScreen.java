@@ -14,6 +14,8 @@ public final class TerminalScreen extends Screen {
     private enum Setting {
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
+        HIT_MODE("Вид удара", "Выберите один из шести разных эффектов удара."),
+        HIT_DURATION("Длительность", "Время затухания эффекта удара в секундах.",.25,1.2),
         HIT_STRENGTH("Сила вспышки", "Яркость вспышки и размер осколков при ударе.", .1, 2),
         HUD("TargetHUD", "Показывает имя и здоровье игрока под прицелом."),
         HUD_COLOR("Палитра TargetHUD", "Нажмите цветной образец. Последний образец — переливающийся градиент."),
@@ -32,7 +34,7 @@ public final class TerminalScreen extends Screen {
         MUSIC_DISCONNECT("Отключить плеер", "Закрывает локальное соединение. Виджет в браузере остановит воспроизведение."),
         DEATH("Death Effect", "Эффект при смерти цели, выбранной сейчас или до двух секунд назад."),
         DEATH_MODE("Эффект смерти", "Ascend — восхождение света. Exit Hell — огненный разлом."),
-        MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
+        MODE("Вид эффекта", "Нажмите, чтобы выбрать один из тринадцати эффектов."),
         COLOR("Цвет", "Четыре неоновых цвета и переливающийся градиент."),
         SPEED("Скорость", "Скорость вращения и движения эффекта.", .1, 3),
         RADIUS("Размер колец", "Радиус эффекта вокруг выбранного игрока.", .4, 1.6),
@@ -50,6 +52,7 @@ public final class TerminalScreen extends Screen {
         boolean slider(){return max>min;}
         double value(Config c){return switch(this){
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
+            case HIT_DURATION->c.hitDuration;
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
             case MUSIC_VOLUME->c.musicVolume;
             case MENU_SCALE->c.menuScale;
@@ -58,6 +61,7 @@ public final class TerminalScreen extends Screen {
         };}
         void set(Config c,double value){switch(this){
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
+            case HIT_DURATION->c.hitDuration=value;
             case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
             case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
             case MENU_SCALE->c.menuScale=value;
@@ -73,7 +77,7 @@ public final class TerminalScreen extends Screen {
         OPTIMIZATION("Оптимизация",new Setting[]{Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
-        HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
+        HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_MODE,Setting.HIT_STRENGTH,Setting.HIT_DURATION}),
         MENU("Меню",new Setting[]{Setting.MENU_SCALE,Setting.MENU_CENTER,Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
         final String title; final Setting[] settings;
         Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
@@ -147,6 +151,7 @@ public final class TerminalScreen extends Screen {
         case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
         case DEATH->c.deathEffect?"Вкл.":"Выкл."; case DEATH_MODE->DeathEffectSystem.NAMES[c.deathMode];
         case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
+        case HIT_MODE->HitEffects.NAMES[c.hitMode];case HIT_DURATION->String.format(Locale.ROOT,"%.2f с",c.hitDuration);
         case MODE->Effects.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
         case SHARDS->Integer.toString(c.shards); case SMOOTHING->Math.round(c.smoothing*1000)+" мс";
         case GLOW,OPACITY->Math.round(s.value(c)*100)+"%";
@@ -244,7 +249,7 @@ public final class TerminalScreen extends Screen {
                 var lines=font.split(Component.literal(Optimizer.DETAILS[c.optimizationPreset]),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
-            case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT);
+            case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT,feature==Feature.HIT_EFFECT);
             case MENU->{
                 text(g,"Настройки меню",x+6,y+8,0x39FF14);
                 var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Размер — ползунком слева. Right Shift — закрыть меню."),w-12);
@@ -301,6 +306,7 @@ public final class TerminalScreen extends Screen {
                 }
                 case DEATH->c.deathEffect=!c.deathEffect; case DEATH_MODE->c.deathMode=(c.deathMode+1)%2;
                 case TARGET->c.enabled=!c.enabled; case HIT->c.hitEffect=!c.hitEffect;
+                case HIT_MODE->c.hitMode=(c.hitMode+1)%HitEffects.NAMES.length;
                 case MODE->c.mode=(c.mode+1)%Effects.MODES.length; case COLOR->c.palette=(c.palette+1)%5;
                 case ANIMATIONS->c.menuAnimations=!c.menuAnimations;
                 case RESET->{if(System.nanoTime()<resetDeadline){Config defaults=new Config();defaults.optimizationBackup=c.optimizationBackup;VisualFX.config=defaults;resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}

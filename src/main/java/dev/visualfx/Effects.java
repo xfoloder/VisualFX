@@ -3,9 +3,11 @@ package dev.visualfx;
 public final class Effects {
     public interface Effect { void draw(Geometry g,double h); }
     public static final String[] NAMES={"Орбитальный разлом","Двойная спираль","Цифровой сбой","Руническая орбита",
-        "Энергоклетка","Неоновая корона","Вихрь осколков"};
+        "Энергоклетка","Неоновая корона","Вихрь осколков","Звёздная клетка","Радар","Неоновый лотос",
+        "Орбитальные кометы","Квантовые кубы","Грозовой контур"};
     public static final Effect[] MODES={new OrbitalRift(),new DnaHelix(),new DigitalGlitch(),new RunicOrbit(),
-        new EnergyCage(),new NeonCrown(),new ShardVortex()};
+        new EnergyCage(),new NeonCrown(),new ShardVortex(),new ExtraEffects.StarCage(),new ExtraEffects.Radar(),
+        new ExtraEffects.Lotus(),new ExtraEffects.Comets(),new ExtraEffects.QuantumCubes(),new ExtraEffects.Storm()};
     static final class OrbitalRift implements Effect {
         public void draw(Geometry g,double h){double t=g.t*g.c.speed,r=g.c.radius;
             g.ring(h*.5,r,.55*Math.sin(t),t,.018);g.ring(h*.5,r,-.65*Math.cos(t*.8),-t,.018);
@@ -101,11 +103,6 @@ public final class Effects {
             }
             g.ring(.03,r*.7,0,-t,.012);
         }
-    }
-    static void impact(Geometry g,double h,double life){double age=1-life;
-        g.ring(.08,g.c.radius+age*2,0,0,.035*life*g.c.hitStrength);
-        int count=g.c.optimization?Math.min(24,g.c.effectShards()):24;
-        for(int i=0;i<count;i++)g.shard(i*2.39996,h*.5+Math.sin(i*4.1)*age*1.6,g.c.radius+age*2,.13*life*g.c.hitStrength);
     }
 }
 

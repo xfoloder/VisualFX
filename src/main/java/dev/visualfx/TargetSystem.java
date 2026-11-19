@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 public final class TargetSystem {
     private ClientLevel world;
     private Player target;
+    private final HitEffectSystem hits=new HitEffectSystem();
     private final DeathEffectSystem deaths=new DeathEffectSystem();
     private final Slot[] slots={new Slot(),new Slot()};
     private long last=System.nanoTime();
@@ -20,14 +21,15 @@ public final class TargetSystem {
         int id=-1; double x,y,z,height=1.8,alpha,hit;
     }
     public void tick(Minecraft c) {
-        deaths.tick(c);
+        deaths.tick(c);hits.tick(c);
         if(world!=c.level) { world=c.level; target=null; for(Slot s:slots){s.id=-1;s.alpha=0;s.hit=0;} }
         target=VisualFX.config.enabled && c.gui.screen()==null && c.hitResult instanceof EntityHitResult h && h.getEntity() instanceof Player p && p!=c.player && p.isAlive() ? p:null;
     }
-    public void hit(int id) { for(Slot s:slots) if(s.id==id) s.hit=1; }
+    public void hit(Player p) { hits.spawn(p);for(Slot s:slots) if(s.id==p.getId()) s.hit=1; }
     public void extract(Minecraft c) {
         long now=System.nanoTime(); double dt=Math.min(.1,(now-last)/1e9); last=now; time+=dt;
         if(c.level==null) return;
+        hits.extract(c,dt);
         Slot active=null;
         if(target!=null) {
             for(Slot s:slots) if(s.id==target.getId()) active=s;
@@ -42,7 +44,7 @@ public final class TargetSystem {
         }
     }
     public void render(LevelRenderContext ctx) {
-        deaths.render(ctx);
+        deaths.render(ctx);hits.render(ctx);
         var camera=ctx.levelState().cameraRenderState.pos;
         var matrices=ctx.poseStack();
         for(Slot s:slots) if(s.alpha>.005) {
@@ -53,12 +55,13 @@ public final class TargetSystem {
                 Geometry g=geometry.get();
                 g.begin(vertices,pose.pose(),VisualFX.config,frameTime,opacity,impact);
                 Effects.MODES[mode].draw(g,height);
-                if(impact>0 && VisualFX.config.hitEffect) Effects.impact(g,height,impact);
+
                 g.end();
             });
             matrices.popPose();
         }
     }
 }
+
 
 
