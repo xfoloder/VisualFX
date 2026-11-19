@@ -15,6 +15,8 @@ public final class TerminalScreen extends Screen {
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
         HIT_STRENGTH("Сила вспышки", "Яркость вспышки и размер осколков при ударе.", .1, 2),
+        HUD("TargetHUD", "Показывает имя и здоровье игрока под прицелом."),
+        HUD_COLOR("Палитра TargetHUD", "Нажмите цветной образец. Последний образец — переливающийся градиент."),
         DEATH("Death Effect", "Эффект при смерти цели, выбранной сейчас или до двух секунд назад."),
         DEATH_MODE("Эффект смерти", "Ascend — восхождение света. Exit Hell — огненный разлом."),
         MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
@@ -46,7 +48,7 @@ public final class TerminalScreen extends Screen {
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Setting[]{Setting.TARGET,Setting.HIT,Setting.HIT_STRENGTH}),
         MISC("Misc",0x39FF14,new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET}),
-        VISUAL("Visual",0x00F5FF,new Setting[]{Setting.DEATH,Setting.DEATH_MODE,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING});
+        VISUAL("Visual",0x00F5FF,new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.DEATH,Setting.DEATH_MODE,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING});
         final String title; final int color; final Setting[] settings;
         Category(String title,int color,Setting[] settings){this.title=title;this.color=color;this.settings=settings;}
     }
@@ -57,7 +59,7 @@ public final class TerminalScreen extends Screen {
     private Setting dragging;
     private long previous=System.nanoTime(),resetDeadline;
     private double visibility;
-    private boolean closing,previewDeath;
+    private boolean closing,previewDeath,previewHud;
     private int scrollOffset;
     private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth;
     private final EffectPreview preview=new EffectPreview();
@@ -72,6 +74,15 @@ public final class TerminalScreen extends Screen {
         if(font.width(value)>available)value=font.plainSubstrByWidth(value,Math.max(0,available-font.width("…")))+"…";
         text(g,value,x,y,color);
     }
+    private void palette(GuiGraphicsExtractor g,int x,int y,int available,int selected,double time){
+        int cell=available/5;
+        for(int i=0;i<5;i++){
+            int start=x+i*cell,w=cell-4;
+            if(i<4)g.fill(start,y,start+w,y+12,tint(Config.COLORS[i],1));
+            else for(int j=0;j<w;j+=2)g.fill(start+j,y,start+Math.min(w,j+2),y+12,tint(Config.paletteColor(4,time*.45+j/(double)w*3),1));
+            if(i==selected)g.outline(start-1,y-1,w+2,14,tint(0xFFFFFF,1));
+        }
+    }
     private void layout(){
         panelWidth=Math.min(740,width-12);
         settingsWidth=panelWidth>=400?panelWidth-160:panelWidth;
@@ -80,6 +91,7 @@ public final class TerminalScreen extends Screen {
         left=(width-panelWidth)/2;top=Math.max(2,(height-panelHeight)/2)+(int)((1-visibility)*12);
     }
     private String value(Setting s,Config c){return switch(s){
+        case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
         case DEATH->c.deathEffect?"Вкл.":"Выкл."; case DEATH_MODE->DeathEffectSystem.NAMES[c.deathMode];
         case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
         case MODE->Effects.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
@@ -118,7 +130,8 @@ public final class TerminalScreen extends Screen {
             g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
             if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(category.color,1));
             fitted(g,s.label,left+18,y,0xD0DCE3,settingsWidth/2-26);
-            fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
+            if(s==Setting.HUD_COLOR)palette(g,left+settingsWidth/2,y-1,settingsWidth/2-16,c.hudPalette,now/1e9);
+            else fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
             if(s.slider()){
                 int x=left+settingsWidth/2,end=left+settingsWidth-18;
                 double f=(s.value(c)-s.min)/(s.max-s.min);
@@ -126,7 +139,11 @@ public final class TerminalScreen extends Screen {
                 g.fill(x,y+11,x+(int)((end-x)*f),y+13,tint(category.color,1));
             }
         }
-        if(settingsWidth<panelWidth)preview.draw(g,font,left+settingsWidth+2,top+61,150,panelHeight-102,c,now/1e9,visibility,previewDeath||hovered==Setting.DEATH||hovered==Setting.DEATH_MODE);
+        if(settingsWidth<panelWidth){
+            if(hovered==Setting.HUD||hovered==Setting.HUD_COLOR||(hovered==null&&previewHud))
+                TargetHud.preview(g,font,left+settingsWidth+2,top+61,150,c,now/1e9,visibility);
+            else preview.draw(g,font,left+settingsWidth+2,top+61,150,panelHeight-102,c,now/1e9,visibility,previewDeath||hovered==Setting.DEATH||hovered==Setting.DEATH_MODE);
+        }
         else if(category!=Category.VISUAL)preview.draw(g,font,left+10,top+65+3*rowHeight,panelWidth-20,panelHeight-108-3*rowHeight,c,now/1e9,visibility,previewDeath||hovered==Setting.DEATH||hovered==Setting.DEATH_MODE);
         String hint=hovered==null?"Колесо мыши — прокрутка. Настройки сохраняются автоматически.":hovered.help;
         if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),mx,my);
@@ -146,7 +163,7 @@ public final class TerminalScreen extends Screen {
             int tabWidth=(panelWidth-16)/3;
             for(Category tab:Category.values()){
                 int start=left+8+tab.ordinal()*tabWidth;
-                if(x>=start&&x<start+tabWidth-3){dragging=null;scrollOffset=0;previewDeath=false;resetDeadline=0;lastCategory=category=tab;VisualFX.config.save();return true;}
+                if(x>=start&&x<start+tabWidth-3){dragging=null;scrollOffset=0;previewDeath=false;previewHud=false;resetDeadline=0;lastCategory=category=tab;VisualFX.config.save();return true;}
             }
         }
         for(int i=scrollOffset;i<Math.min(category.settings.length,scrollOffset+7);i++){
@@ -155,8 +172,14 @@ public final class TerminalScreen extends Screen {
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
             previewDeath=s==Setting.DEATH||s==Setting.DEATH_MODE;
+            previewHud=s==Setting.HUD||s==Setting.HUD_COLOR;
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
+                                case HUD->c.targetHud=!c.targetHud;
+                case HUD_COLOR->{
+                    int start=left+settingsWidth/2,swatchWidth=(settingsWidth/2-16)/5;
+                    c.hudPalette=x>=start?Math.clamp((int)((x-start)/Math.max(1,swatchWidth)),0,4):(c.hudPalette+1)%5;
+                }
                 case DEATH->c.deathEffect=!c.deathEffect; case DEATH_MODE->c.deathMode=(c.deathMode+1)%2;
                 case TARGET->c.enabled=!c.enabled; case HIT->c.hitEffect=!c.hitEffect;
                 case MODE->c.mode=(c.mode+1)%Effects.MODES.length; case COLOR->c.palette=(c.palette+1)%5;
@@ -182,6 +205,7 @@ public final class TerminalScreen extends Screen {
         dragging=null;VisualFX.config.save();return true;
     }
 }
+
 
 
 

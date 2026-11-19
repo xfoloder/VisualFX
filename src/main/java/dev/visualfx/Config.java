@@ -15,6 +15,8 @@ public final class Config {
     public double menuOpacity = .85, hitStrength = 1;
     public boolean deathEffect = true;
     public int deathMode = 0;
+    public boolean targetHud = true;
+    public int hudPalette = 2;
     public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
     public void clamp() {
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,5);
@@ -23,6 +25,7 @@ public final class Config {
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);
         menuOpacity = limit(menuOpacity,.25,1); hitStrength = limit(hitStrength,.1,2);
         deathMode = Math.floorMod(deathMode,2);
+        hudPalette = Math.floorMod(hudPalette,5);
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {
@@ -36,6 +39,9 @@ public final class Config {
         catch(Exception e) { VisualFX.LOG.warn("Cannot save VisualFX configuration", e); }
     }
     public int color(double phase) {
+        return paletteColor(palette,phase);
+    }
+    public static int paletteColor(int palette,double phase) {
         if(palette<4) return COLORS[palette];
         double x=((phase%4)+4)%4; int a=COLORS[(int)x],b=COLORS[((int)x+1)%4]; double f=x-(int)x;
         return ((int)(((a>>16)&255)*(1-f)+((b>>16)&255)*f)<<16)|((int)(((a>>8)&255)*(1-f)+((b>>8)&255)*f)<<8)|(int)((a&255)*(1-f)+(b&255)*f);

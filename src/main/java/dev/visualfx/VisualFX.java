@@ -17,15 +17,19 @@ public final class VisualFX implements ClientModInitializer {
     public static Config config;
     public static final TargetSystem TARGET = new TargetSystem();
     private boolean held;
+    private final TargetHud hud=new TargetHud();
     @Override public void onInitializeClient() {
         config=Config.load();
+        net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
+            net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","target_hud"),hud::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean down=InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
             if(down&&!held) {
                 if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
-            held=down; TARGET.tick(client);
+            held=down; TARGET.tick(client);hud.tick(client);
         });
         LevelExtractionEvents.END_EXTRACTION.register(context -> TARGET.extract(Minecraft.getInstance()));
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> TARGET.render(context));
@@ -35,6 +39,7 @@ public final class VisualFX implements ClientModInitializer {
         });
     }
 }
+
 
 
 
