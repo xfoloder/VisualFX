@@ -6,8 +6,11 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.Identifier;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -76,6 +79,7 @@ public final class AimAssist {
         }
         if (config == null || !config.aimAssist
             || player == null || world == null || !player.isAlive()
+            || !supportsWeapon(player.getMainHandItem())
             || player.isSpectator() || client.getCameraEntity() != player || client.gui.screen() != null
             || client.isPaused() || !client.isWindowActive()) {
             selected = null;
@@ -123,6 +127,10 @@ public final class AimAssist {
     private static boolean eligible(Player player, Player target) {
         return target != player && target.isAlive() && !target.isSpectator() && target.isPickable()
             && !target.isInvisibleTo(player) && !player.isAlliedTo(target);
+    }
+
+    static boolean supportsWeapon(ItemStack stack) {
+        return !stack.isEmpty() && (stack.is(Items.MACE) || stack.is(ItemTags.SWORDS) || stack.is(ItemTags.SPEARS));
     }
 
     private static Vec3 aimPoint(Player target, float partialTick) {

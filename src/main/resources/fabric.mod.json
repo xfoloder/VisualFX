@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "visualfx",
-  "version": "1.17.2+26.3",
+  "version": "1.17.3+26.3",
   "mixins": ["visualfx.aim.mixins.json"],
   "name": "VisualFX",
   "description": "Neon target effects and a cyber terminal control panel.",
