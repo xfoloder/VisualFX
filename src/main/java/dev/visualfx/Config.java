@@ -12,6 +12,7 @@ public final class Config {
     public int mode = 0, palette = 0, shards = 18;
     public double speed = 1, radius = .85, glow = .7, smoothing = .22;
     public boolean menuAnimations = true;
+    public double menuScale=1,menuX=.5,menuY=.5;
     public double menuOpacity = .85, hitStrength = 1;
     public boolean deathEffect = true;
     public int deathMode = 0;
@@ -34,6 +35,7 @@ public final class Config {
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);
         menuOpacity = limit(menuOpacity,.25,1); hitStrength = limit(hitStrength,.1,2);
+        menuScale=limit(menuScale,.65,1.5);menuX=limit(menuX,0,1);menuY=limit(menuY,0,1);
         deathMode = Math.floorMod(deathMode,2);
         hudPalette = Math.floorMod(hudPalette,5);
         hudScale=limit(hudScale,.5,2);hudX=limit(hudX,0,1);hudY=limit(hudY,0,1);

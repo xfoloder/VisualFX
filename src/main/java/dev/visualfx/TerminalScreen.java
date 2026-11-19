@@ -40,6 +40,8 @@ public final class TerminalScreen extends Screen {
         SHARDS("Осколки", "Количество энергетических осколков: от 0 до 48.", 0, 48),
         SMOOTHING("Плавность", "Чем выше значение, тем медленнее появление и исчезновение.", .05, .7),
         OPACITY("Непрозрачность", "Непрозрачность фона меню.", .25, 1),
+        MENU_SCALE("Размер меню", "Масштаб 65–150%. Применяется после отпускания. В маленьком окне ограничивается доступным местом.",.65,1.5),
+        MENU_CENTER("Положение меню", "Возвращает окно меню в центр экрана."),
         ANIMATIONS("Анимации меню", "Плавное открытие и закрытие меню."),
         RESET("Сброс настроек", "Нажмите дважды за три секунды для сброса всех настроек.");
         final String label,help; final double min,max;
@@ -50,6 +52,7 @@ public final class TerminalScreen extends Screen {
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
             case MUSIC_VOLUME->c.musicVolume;
+            case MENU_SCALE->c.menuScale;
             case GLOW->c.glow; case SHARDS->c.shards; case SMOOTHING->c.smoothing; case OPACITY->c.menuOpacity;
             default->0;
         };}
@@ -57,6 +60,7 @@ public final class TerminalScreen extends Screen {
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
             case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
             case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
+            case MENU_SCALE->c.menuScale=value;
             case GLOW->c.glow=value; case SHARDS->c.shards=(int)Math.round(value);
             case SMOOTHING->c.smoothing=value; case OPACITY->c.menuOpacity=value;
             default->{}
@@ -70,7 +74,7 @@ public final class TerminalScreen extends Screen {
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
-        MENU("Меню",new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
+        MENU("Меню",new Setting[]{Setting.MENU_SCALE,Setting.MENU_CENTER,Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
         final String title; final Setting[] settings;
         Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
     }
@@ -91,13 +95,16 @@ public final class TerminalScreen extends Screen {
     private long previous=System.nanoTime(),resetDeadline;
     private double visibility;
     private boolean closing;
+    private boolean draggingWindow;
+    private double uiScale=1,grabX,grabY;
+    private int canvasWidth,canvasHeight;
     private int scrollOffset;
     private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth,visibleRows;
     private final EffectPreview preview=new EffectPreview();
     private String optimizationMessage="";
     public TerminalScreen(){super(Component.literal("VisualFX terminal"));}
     @Override public boolean isPauseScreen(){return false;}
-    @Override public void onClose(){dragging=null;VisualFX.config.save();closing=true;}
+    @Override public void onClose(){dragging=null;draggingWindow=false;VisualFX.config.save();closing=true;}
     @Override public void removed(){VisualFX.config.save();}
     @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){}
     private int tint(int rgb,double opacity){return ((int)(Math.clamp(opacity*visibility,0,1)*255)<<24)|rgb;}
@@ -116,19 +123,25 @@ public final class TerminalScreen extends Screen {
         }
     }
     private void layout(){
-        panelWidth=Math.min(740,width-12);
-        settingsWidth=panelWidth>=400?panelWidth-160:panelWidth;
+        Config c=VisualFX.config;
+        panelWidth=Math.min(620,Math.max(300,width-40));
         rowHeight=24;
-        visibleRows=Math.clamp((height-135)/rowHeight,3,8);
-        scrollOffset=Math.clamp(scrollOffset,0,Math.max(0,feature.settings.length-visibleRows));
+        visibleRows=Math.clamp((height-175)/rowHeight,3,7);
         panelHeight=127+visibleRows*rowHeight;
-        left=(width-panelWidth)/2;top=Math.max(2,(height-panelHeight)/2)+(int)((1-visibility)*12);
+        double fit=Math.min(width/(panelWidth+12.0),height/(panelHeight+12.0));
+        uiScale=Math.max(.1,Math.min(dragging==Setting.MENU_SCALE?uiScale:c.menuScale,fit));
+        canvasWidth=(int)(width/uiScale);canvasHeight=(int)(height/uiScale);
+        settingsWidth=panelWidth>=360?panelWidth-160:panelWidth;
+        scrollOffset=Math.clamp(scrollOffset,0,Math.max(0,feature.settings.length-visibleRows));
+        left=6+(int)(Math.max(0,canvasWidth-panelWidth-12)*c.menuX);
+        top=6+(int)(Math.max(0,canvasHeight-panelHeight-12)*c.menuY)+(int)((1-visibility)*12);
     }
     private String value(Setting s,Config c){return switch(s){
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
         case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
+        case MENU_SCALE->Math.round(c.menuScale*100)+"%";case MENU_CENTER->"По центру";
         case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
         case HUD_POSITION,WATERMARK_POSITION->"Переместить";
         case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
@@ -149,6 +162,9 @@ public final class TerminalScreen extends Screen {
         if(closing&&visibility<.015){minecraft.gui.setScreen(null);return;}
         layout();
         g.fill(0,0,width,height,tint(0x020409,.62));
+        int rawMx=mx,rawMy=my;
+        mx=(int)(mx/uiScale);my=(int)(my/uiScale);
+        g.pose().pushMatrix();g.pose().scale((float)uiScale,(float)uiScale);
         g.fill(left-1,top-1,left+panelWidth+1,top+panelHeight+1,tint(category.color,.65));
         g.fill(left,top,left+panelWidth,top+panelHeight,tint(0x070B10,c.menuOpacity));
         g.fill(left,top,left+panelWidth,top+27,tint(0x101923,c.menuOpacity));
@@ -193,19 +209,20 @@ public final class TerminalScreen extends Screen {
             int y=top+88+used*rowHeight;
             drawPreview(g,c,left+10,y,panelWidth-20,top+panelHeight-37-y,now/1e9);
         }
-        String hint=feature==Feature.OPTIMIZATION&&!optimizationMessage.isEmpty()?optimizationMessage:hovered==null?"Колесо мыши — прокрутка. Настройки сохраняются автоматически.":hovered.help;
-        if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),mx,my);
+        String hint=feature==Feature.OPTIMIZATION&&!optimizationMessage.isEmpty()?optimizationMessage:hovered==null?"Перетащите верхнюю панель. Колесо мыши — прокрутка.":hovered.help;
         // Wrap the help text using the same font as the panel.
         var lines=font.split(Component.literal(hint).setStyle(FONT),panelWidth-24);
         int y=top+panelHeight-31;
         for(int i=0;i<Math.min(2,lines.size());i++)g.text(font,lines.get(i),left+12,y+i*10,tint(0x829BA4,1),false);
+        g.pose().popMatrix();
+        if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),rawMx,rawMy);
     }
     private void slider(Setting s,double x){
         double f=Math.clamp((x-(left+settingsWidth/2))/(settingsWidth/2.-18),0,1);
         s.set(VisualFX.config,s.min+f*(s.max-s.min));
     }
     private void selectFeature(Feature selected){
-        dragging=null;scrollOffset=0;resetDeadline=0;
+        dragging=null;draggingWindow=false;scrollOffset=0;resetDeadline=0;
         lastFeature=feature=selected;VisualFX.config.save();
     }
     private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
@@ -230,14 +247,17 @@ public final class TerminalScreen extends Screen {
             case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT);
             case MENU->{
                 text(g,"Настройки меню",x+6,y+8,0x39FF14);
-                var lines=font.split(Component.literal("Параметры сохраняются автоматически. Right Shift — закрыть меню."),w-12);
+                var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Размер — ползунком слева. Right Shift — закрыть меню."),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
         }
     }
     @Override public boolean mouseClicked(MouseButtonEvent event,boolean doubled){
         if(closing||event.button()!=InputConstants.MOUSE_BUTTON_LEFT)return false;
-        double x=event.x(),y=event.y();
+        double x=event.x()/uiScale,y=event.y()/uiScale;
+        if(x>=left&&x<left+panelWidth&&y>=top&&y<top+27){
+            dragging=null;draggingWindow=true;grabX=x-left;grabY=y-top;return true;
+        }
         if(y>=top+32&&y<top+54){
             int tabWidth=(panelWidth-16)/3;
             for(Category tab:Category.values()){
@@ -266,6 +286,7 @@ public final class TerminalScreen extends Screen {
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
                 case MUSIC_DISCONNECT->SoundCloudPlayer.INSTANCE.stop();
+                case MENU_CENTER->{c.menuX=.5;c.menuY=.5;}
                 case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
                 case OPT_PRESET->{c.optimizationPreset=(c.optimizationPreset+1)%3;optimizationMessage="";}
                 case OPT_APPLY->optimizationMessage=Optimizer.apply();
@@ -290,15 +311,24 @@ public final class TerminalScreen extends Screen {
         return false;
     }
     @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical){
-        if(closing||dragging!=null||x<left||x>=left+settingsWidth||y<top+81||y>=top+panelHeight-35||vertical==0)return false;
+        x/=uiScale;y/=uiScale;
+        if(closing||draggingWindow||dragging!=null||x<left||x>=left+settingsWidth||y<top+81||y>=top+panelHeight-35||vertical==0)return false;
         scrollOffset=Math.clamp(scrollOffset+(vertical<0?1:-1),0,Math.max(0,feature.settings.length-visibleRows));
         return true;
     }
     @Override public boolean mouseDragged(MouseButtonEvent event,double dx,double dy){
+        if(draggingWindow&&!closing){
+            double travelX=Math.max(0,canvasWidth-panelWidth-12),travelY=Math.max(0,canvasHeight-panelHeight-12);
+            Config c=VisualFX.config;
+            c.menuX=travelX>0?Math.clamp((event.x()/uiScale-grabX-6)/travelX,0,1):.5;
+            c.menuY=travelY>0?Math.clamp((event.y()/uiScale-grabY-6-(int)((1-visibility)*12))/travelY,0,1):.5;
+            return true;
+        }
         if(dragging==null||closing)return false;
-        slider(dragging,event.x());return true;
+        slider(dragging,event.x()/uiScale);return true;
     }
     @Override public boolean mouseReleased(MouseButtonEvent event){
+        if(event.button()==InputConstants.MOUSE_BUTTON_LEFT&&draggingWindow){draggingWindow=false;VisualFX.config.save();return true;}
         if(event.button()!=InputConstants.MOUSE_BUTTON_LEFT||dragging==null)return false;
         dragging=null;VisualFX.config.save();return true;
     }
