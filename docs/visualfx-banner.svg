@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title description">
+  <title id="title">VisualFX</title>
+  <desc id="description">A green terminal prompt and three intersecting neon orbits on a dark grid.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#070e13"/>
+      <stop offset="1" stop-color="#151025"/>
+    </linearGradient>
+    <linearGradient id="title-color">
+      <stop stop-color="#f4fff7"/>
+      <stop offset=".58" stop-color="#a3ffc1"/>
+      <stop offset="1" stop-color="#39ff14"/>
+    </linearGradient>
+    <linearGradient id="orbit-color">
+      <stop stop-color="#00f5ff"/>
+      <stop offset=".53" stop-color="#b026ff"/>
+      <stop offset="1" stop-color="#ff00cc"/>
+    </linearGradient>
+    <radialGradient id="halo">
+      <stop stop-color="#8d24ff" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#8d24ff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#a5aaff" stroke-opacity=".11"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="360" rx="22" fill="url(#background)"/>
+  <rect x="18" y="18" width="1164" height="324" rx="12" fill="none" stroke="#30364d"/>
+  <path d="M19 66h1162" stroke="#30364d"/>
+  <circle cx="43" cy="42" r="5" fill="#ff00cc"/>
+  <circle cx="61" cy="42" r="5" fill="#b026ff"/>
+  <circle cx="79" cy="42" r="5" fill="#00f5ff"/>
+  <text x="108" y="47" fill="#b7c4d2" font-family="monospace" font-size="15">visualfx@neon:~$</text>
+
+  <path d="M693 67h488v263a11 11 0 0 1-11 11H693Z" fill="url(#grid)"/>
+  <ellipse cx="944" cy="202" rx="232" ry="125" fill="url(#halo)"/>
+  <path d="M943 103v199M774 202h338" fill="none" stroke="#91a0bd" stroke-dasharray="4 9" stroke-opacity=".34"/>
+
+  <g transform="translate(943 202)" fill="none">
+    <ellipse rx="170" ry="47" transform="rotate(-24)" stroke="#00f5ff" stroke-width="13" opacity=".12"/>
+    <ellipse rx="170" ry="47" transform="rotate(-24)" stroke="url(#orbit-color)" stroke-width="3"/>
+    <ellipse rx="155" ry="41" transform="rotate(26)" stroke="#ff00cc" stroke-width="13" opacity=".13"/>
+    <ellipse rx="155" ry="41" transform="rotate(26)" stroke="url(#orbit-color)" stroke-width="2.5"/>
+    <ellipse rx="124" ry="40" transform="rotate(-8)" stroke="#39ff14" stroke-width="1.5" stroke-dasharray="24 9 5 8" opacity=".75"/>
+    <path d="M0-54 36-18 18 37 0 57-18 37-36-18Z" fill="#0b1424" stroke="#b787ff" stroke-width="2"/>
+    <path d="M0-54 12-7 0 57-12-7ZM-36-18l36 45 36-45" stroke="#6adfff" stroke-width="1.5"/>
+    <circle r="5" fill="#e3ffeb" stroke="#39ff14" stroke-width="2"/>
+  </g>
+  <g fill="#00f5ff">
+    <path d="m804 235 6-9 6 9-6 9Zm248-91 5-7 5 7-5 7Z"/>
+    <circle cx="1034" cy="265" r="3"/>
+  </g>
+  <g fill="#ff00cc">
+    <path d="m1063 236 9-12 9 12-9 12Zm-234-85 5-7 5 7-5 7Z"/>
+    <circle cx="864" cy="281" r="3"/>
+  </g>
+  <circle cx="1003" cy="115" r="3" fill="#39ff14"/>
+
+  <text x="63" y="207" font-family="monospace" font-weight="700" font-size="96" letter-spacing="-6" fill="url(#title-color)">VisualFX</text>
+  <path d="M70 227h126" stroke="#39ff14" stroke-width="3"/>
+  <text x="70" y="276" font-family="monospace" font-size="22" letter-spacing="2.5" fill="#b7c4d2">MINECRAFT JAVA EDITION / FABRIC</text>
+</svg>
