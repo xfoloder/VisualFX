@@ -15,7 +15,7 @@ public final class TerminalScreen extends Screen {
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
         HIT_STRENGTH("Сила вспышки", "Яркость вспышки и размер осколков при ударе.", .1, 2),
-        MODE("Вид эффекта", "Нажмите, чтобы выбрать один из четырёх эффектов."),
+        MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
         COLOR("Цвет", "Четыре неоновых цвета и переливающийся градиент."),
         SPEED("Скорость", "Скорость вращения и движения эффекта.", .1, 3),
         RADIUS("Размер колец", "Радиус эффекта вокруг выбранного игрока.", .4, 1.6),
@@ -78,7 +78,7 @@ public final class TerminalScreen extends Screen {
     }
     private String value(Setting s,Config c){return switch(s){
         case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
-        case MODE->EffectPreview.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
+        case MODE->Effects.NAMES[c.mode]; case COLOR->PALETTES[c.palette];
         case SHARDS->Integer.toString(c.shards); case SMOOTHING->Math.round(c.smoothing*1000)+" мс";
         case GLOW,OPACITY->Math.round(s.value(c)*100)+"%";
         case ANIMATIONS->c.menuAnimations?"Вкл.":"Выкл.";
@@ -153,7 +153,7 @@ public final class TerminalScreen extends Screen {
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
                 case TARGET->c.enabled=!c.enabled; case HIT->c.hitEffect=!c.hitEffect;
-                case MODE->c.mode=(c.mode+1)%4; case COLOR->c.palette=(c.palette+1)%5;
+                case MODE->c.mode=(c.mode+1)%Effects.MODES.length; case COLOR->c.palette=(c.palette+1)%5;
                 case ANIMATIONS->c.menuAnimations=!c.menuAnimations;
                 case RESET->{if(System.nanoTime()<resetDeadline){VisualFX.config=new Config();resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}
                 default->{}

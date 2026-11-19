@@ -15,7 +15,7 @@ public final class Config {
     public double menuOpacity = .85, hitStrength = 1;
     public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
     public void clamp() {
-        mode = Math.floorMod(mode,4); palette = Math.floorMod(palette,5);
+        mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,5);
         shards = Math.clamp(shards,0,48);
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);

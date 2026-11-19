@@ -5,7 +5,6 @@ import net.minecraft.client.gui.Font;
 
 /** Projects the actual effect geometry into the menu, without a world or target. */
 final class EffectPreview extends Geometry {
-    static final String[] NAMES={"Орбитальный разлом","Двойная спираль","Цифровой сбой","Руническая орбита"};
     private GuiGraphicsExtractor gui;
     private double cx,cy,scale,fade;
 
