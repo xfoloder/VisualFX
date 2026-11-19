@@ -51,7 +51,7 @@ final class EffectPreview extends Geometry {
         double px=cx+(x+z*.35)*scale,py=cy-(y-z*.2)*scale;
         double qx=cx+(X+Z*.35)*scale,qy=cy-(Y-Z*.2)*scale;
         int color=forcedColor>=0?forcedColor:c.color(t*.45+phase);
-        if(c.glow>.01)plainLine(px,py,qx,qy,2+width*scale*2,color,.1*c.glow);
+        if(c.glow>.01&&c.glowPasses()>1)plainLine(px,py,qx,qy,2+width*scale*2,color,.1*c.glow);
         plainLine(px,py,qx,qy,Math.max(.5,width*scale),color,.8);
     }
 }

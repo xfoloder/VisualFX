@@ -1,5 +1,5 @@
 plugins { id 'net.fabricmc.fabric-loom' version '1.17.21' }
-version = '1.9.0+26.3'
+version = '1.10.0+26.3'
 group = 'dev.visualfx'
 base { archivesName = 'visualfx' }
 repositories { mavenCentral() }
@@ -10,6 +10,7 @@ dependencies {
 }
 java { toolchain.languageVersion = JavaLanguageVersion.of(25); withSourcesJar() }
 tasks.withType(JavaCompile).configureEach { options.release = 25; options.encoding = 'UTF-8' }
+
 
 
 

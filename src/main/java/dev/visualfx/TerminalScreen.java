@@ -23,6 +23,10 @@ public final class TerminalScreen extends Screen {
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
+        OPT_LIGHT("Лёгкие эффекты", "Уменьшает детализацию и число осколков VisualFX. Выключение возвращает полное качество."),
+        OPT_PRESET("Пресет", "Выберите баланс качества, больше FPS или минимум нагрузки. Настройки Minecraft меняются кнопкой ниже."),
+        OPT_APPLY("Применить к игре", "Снижает дальность, облака и частицы. Исходные значения сохраняются для восстановления."),
+        OPT_RESTORE("Вернуть настройки", "Восстанавливает значения Minecraft до первого применения пресета и отключает лёгкие эффекты."),
         DEATH("Death Effect", "Эффект при смерти цели, выбранной сейчас или до двух секунд назад."),
         DEATH_MODE("Эффект смерти", "Ascend — восхождение света. Exit Hell — огненный разлом."),
         MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
@@ -57,6 +61,7 @@ public final class TerminalScreen extends Screen {
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.HUD_SCALE,Setting.HUD_POSITION}),
         WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
+        OPTIMIZATION("Оптимизация",new Setting[]{Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
         MENU("Меню",new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
@@ -65,7 +70,7 @@ public final class TerminalScreen extends Screen {
     }
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
-        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.MENU}),
+        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.MENU}),
         VISUAL("Visual",0x00F5FF,new Feature[]{Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
@@ -83,6 +88,7 @@ public final class TerminalScreen extends Screen {
     private int scrollOffset;
     private int left,top,panelWidth,rowHeight,panelHeight,settingsWidth,visibleRows;
     private final EffectPreview preview=new EffectPreview();
+    private String optimizationMessage="";
     public TerminalScreen(){super(Component.literal("VisualFX terminal"));}
     @Override public boolean isPauseScreen(){return false;}
     @Override public void onClose(){dragging=null;VisualFX.config.save();closing=true;}
@@ -114,6 +120,8 @@ public final class TerminalScreen extends Screen {
     }
     private String value(Setting s,Config c){return switch(s){
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
+        case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
+        case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
         case HUD_POSITION,WATERMARK_POSITION->"Переместить";
         case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
@@ -178,7 +186,7 @@ public final class TerminalScreen extends Screen {
             int y=top+88+used*rowHeight;
             drawPreview(g,c,left+10,y,panelWidth-20,top+panelHeight-37-y,now/1e9);
         }
-        String hint=hovered==null?"Колесо мыши — прокрутка. Настройки сохраняются автоматически.":hovered.help;
+        String hint=feature==Feature.OPTIMIZATION&&!optimizationMessage.isEmpty()?optimizationMessage:hovered==null?"Колесо мыши — прокрутка. Настройки сохраняются автоматически.":hovered.help;
         if(hovered!=null)g.setTooltipForNextFrame(Component.literal(hovered.label+": "+value(hovered,c)),mx,my);
         // Wrap the help text using the same font as the panel.
         var lines=font.split(Component.literal(hint).setStyle(FONT),panelWidth-24);
@@ -200,6 +208,11 @@ public final class TerminalScreen extends Screen {
             case WATERMARK->{
                 text(g,"Watermark",x+6,y+8,0x39FF14);
                 Watermark.draw(g,font,x+4,y+30,Math.min(1,(w-8)/172.0),c.watermarkPalette,time);
+            }
+            case OPTIMIZATION->{
+                text(g,Optimizer.NAMES[c.optimizationPreset],x+6,y+8,0x39FF14);
+                var lines=font.split(Component.literal(Optimizer.DETAILS[c.optimizationPreset]),w-12);
+                for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
             case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT);
             case MENU->{
@@ -238,6 +251,10 @@ public final class TerminalScreen extends Screen {
 
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
+                case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
+                case OPT_PRESET->{c.optimizationPreset=(c.optimizationPreset+1)%3;optimizationMessage="";}
+                case OPT_APPLY->optimizationMessage=Optimizer.apply();
+                case OPT_RESTORE->optimizationMessage=Optimizer.restore();
                                 case HUD->c.targetHud=!c.targetHud;
                 case WATERMARK->c.watermark=!c.watermark;
                 case HUD_COLOR,WATERMARK_COLOR->{
@@ -250,7 +267,7 @@ public final class TerminalScreen extends Screen {
                 case TARGET->c.enabled=!c.enabled; case HIT->c.hitEffect=!c.hitEffect;
                 case MODE->c.mode=(c.mode+1)%Effects.MODES.length; case COLOR->c.palette=(c.palette+1)%5;
                 case ANIMATIONS->c.menuAnimations=!c.menuAnimations;
-                case RESET->{if(System.nanoTime()<resetDeadline){VisualFX.config=new Config();resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}
+                case RESET->{if(System.nanoTime()<resetDeadline){Config defaults=new Config();defaults.optimizationBackup=c.optimizationBackup;VisualFX.config=defaults;resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}
                 default->{}
             }
             VisualFX.config.save();return true;

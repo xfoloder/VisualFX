@@ -57,7 +57,7 @@ final class DeathEffectSystem {
                 double y=age*2.7+band*.28;
                 g.ring(y,r*(1-age*.45)*(1-band*.12),.08*Math.sin(age*8+band),age*5+band,.018);
             }
-            for(int i=0;i<g.c.shards;i++){
+            for(int i=0;i<g.c.effectShards();i++){
                 double a=i*2.39996+age*3,y=h*.3+age*(1.5+(i%5)*.25);
                 double x=Math.cos(a)*r*.65,z=Math.sin(a)*r*.65;
                 g.line(x,y,z,x,y+.18+age*.22,z,.012,i*.3);
@@ -78,7 +78,7 @@ final class DeathEffectSystem {
                 double y=Math.sin(age*Math.PI)*(h+.4)*(i%2==0?1:.65);
                 g.line(x,.08,z,x*.65,y,z*.65,.018,i*.2);
             }
-            for(int i=0;i<g.c.shards;i++){
+            for(int i=0;i<g.c.effectShards();i++){
                 double a=i*2.39996-age*2;
                 g.shard(a,.1+age*(1+(i%7)*.2),radius*(.5+(i%3)*.15),.055*(1-age*.5));
             }
@@ -86,3 +86,4 @@ final class DeathEffectSystem {
         }
     }
 }
+
