@@ -18,8 +18,25 @@ final class TargetHud {
     private double health,shownHealth,visibility;
     private boolean active;
     private long last=System.nanoTime();
+    private record Anchor(double x,double y,boolean visible) {}
+    private static final Anchor HIDDEN=new Anchor(0,0,false);
+    private volatile Anchor anchor=HIDDEN;
+    private final org.joml.Vector4f projected=new org.joml.Vector4f();
+    void project(net.minecraft.client.renderer.state.level.CameraRenderState camera){
+        Minecraft c=Minecraft.getInstance();
+        if(c.level==null||!VisualFX.config.targetHud||entityId<0){anchor=HIDDEN;return;}
+        var entity=c.level.getEntity(entityId);
+        if(!(entity instanceof Player p)||p.isRemoved()){anchor=HIDDEN;return;}
+        var pos=p.getPosition(c.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        projected.set((float)(pos.x-camera.pos.x),(float)(pos.y+p.getBbHeight()+.25-camera.pos.y),(float)(pos.z-camera.pos.z),1);
+        camera.viewRotationMatrix.transform(projected);
+        camera.projectionMatrix.transform(projected);
+        if(!Float.isFinite(projected.w)||projected.w<=.001f){anchor=HIDDEN;return;}
+        double x=projected.x/projected.w,y=projected.y/projected.w;
+        anchor=Double.isFinite(x)&&Double.isFinite(y)&&Math.abs(x)<=1&&Math.abs(y)<=1?new Anchor(x*.5+.5,.5-y*.5,true):HIDDEN;
+    }
     void tick(Minecraft c){
-        if(world!=c.level){world=c.level;active=false;visibility=0;entityId=-1;name="";health=shownHealth=0;}
+        if(world!=c.level){world=c.level;active=false;visibility=0;entityId=-1;anchor=HIDDEN;name="";health=shownHealth=0;}
         active=false;
         if(c.level==null||!VisualFX.config.targetHud){visibility=0;return;}
         if(c.gui.screen()==null&&c.hitResult instanceof EntityHitResult hit&&hit.getEntity() instanceof Player p&&p!=c.player&&p.isAlive()){
@@ -27,7 +44,7 @@ final class TargetHud {
             float hp=p.getHealth(),max=p.getMaxHealth();
             health=max>0&&Float.isFinite(max)&&Float.isFinite(hp)?Math.clamp(hp/max,0,1):0;
             healthText=String.format(Locale.ROOT,"%.1f / %.1f HP",hp,max);
-            if(entityId!=p.getId()){shownHealth=health;entityId=p.getId();}
+            if(entityId!=p.getId()){shownHealth=health;entityId=p.getId();anchor=HIDDEN;}
             active=true;
         }
     }
@@ -36,8 +53,10 @@ final class TargetHud {
         visibility+=((active?1:0)-visibility)*(1-Math.exp(-dt/.18));
         shownHealth+=(health-shownHealth)*(1-Math.exp(-dt/.15));
         Minecraft c=Minecraft.getInstance();
-        if(c.level==null||!VisualFX.config.targetHud||visibility<.01||c.gui.screen()!=null)return;
+        Anchor position=anchor;
+        if(c.level==null||!VisualFX.config.targetHud||visibility<.01||c.gui.screen()!=null||!position.visible)return;
         placement.update(g.guiWidth(),g.guiHeight(),false);
+        placement.follow(position.x*g.guiWidth(),position.y*g.guiHeight(),g.guiWidth(),g.guiHeight());
         g.pose().pushMatrix();g.pose().translate((float)placement.x,(float)placement.y).scale((float)placement.scale,(float)placement.scale);
         drawCard(g,c.font,0,0,180,name,healthText,shownHealth,VisualFX.config.hudPalette,now/1e9,visibility);
         g.pose().popMatrix();

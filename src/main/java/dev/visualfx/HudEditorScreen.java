@@ -23,6 +23,12 @@ final class HudEditorScreen extends Screen {
         g.fill(0,0,width,height,0x77020910);
         g.verticalLine(width/2,0,height,0x30486A7C);g.horizontalLine(0,width,height/2,0x30486A7C);
         placement.update(width,height,watermark);
+        if(!watermark){
+            int ax=width/2,ay=(int)(height*.55);
+            g.outline(ax-7,ay+6,14,14,0xFF728D9A);
+            g.fill(ax-9,ay+22,ax+9,ay+50,0x88263C4B);
+            g.horizontalLine(ax-5,ax+5,ay,0xFF00F5FF);g.verticalLine(ax,ay-5,ay+5,0xFF00F5FF);
+        }
         if(watermark)Watermark.draw(g,font,placement.x,placement.y,placement.scale,VisualFX.config.watermarkPalette,System.nanoTime()/1e9);
         else {
             g.pose().pushMatrix();g.pose().translate((float)placement.x,(float)placement.y).scale((float)placement.scale,(float)placement.scale);
@@ -32,7 +38,7 @@ final class HudEditorScreen extends Screen {
         if(placement.contains(mx,my)||dragging)g.outline((int)placement.x-2,(int)placement.y-2,(int)Math.ceil(placement.w)+4,(int)Math.ceil(placement.h)+4,0xFFFFFFFF);
         int bar=toolbarY();
         g.fill(4,bar,width-4,bar+33,0xED080F19);
-        String hint=(watermark?"Watermark":"TargetHUD")+": перетащите мышью. Колесо — размер.";
+        String hint=watermark?"Watermark: перетащите мышью. Колесо — размер.":"TargetHUD: смещение от головы цели. Колесо — размер.";
         var lines=font.split(Component.literal(hint),width-88);
         for(int i=0;i<Math.min(2,lines.size());i++)g.text(font,lines.get(i),10,bar+6+i*10,0xFFE3EDF3,false);
         g.fill(width-76,bar+6,width-10,bar+26,0xFF20333E);
@@ -63,4 +69,5 @@ final class HudEditorScreen extends Screen {
         c.save();return true;
     }
 }
+
 

@@ -18,6 +18,7 @@ public final class Config {
     public boolean targetHud = true;
     public int hudPalette = 2;
     public double hudScale=1,hudX=.65,hudY=.6;
+    public double hudOffsetX=0,hudOffsetY=-12;
     public boolean watermark=true;
     public int watermarkPalette=0;
     public double watermarkScale=1,watermarkX=0,watermarkY=0;
@@ -31,6 +32,7 @@ public final class Config {
         deathMode = Math.floorMod(deathMode,2);
         hudPalette = Math.floorMod(hudPalette,5);
         hudScale=limit(hudScale,.5,2);hudX=limit(hudX,0,1);hudY=limit(hudY,0,1);
+        hudOffsetX=limit(hudOffsetX,-2048,2048);hudOffsetY=limit(hudOffsetY,-2048,2048);
         watermarkPalette=Math.floorMod(watermarkPalette,5);
         watermarkScale=limit(watermarkScale,.5,2);watermarkX=limit(watermarkX,0,1);watermarkY=limit(watermarkY,0,1);
     }

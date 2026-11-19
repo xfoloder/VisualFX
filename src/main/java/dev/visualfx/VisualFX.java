@@ -36,7 +36,10 @@ public final class VisualFX implements ClientModInitializer {
             }
             held=down; TARGET.tick(client);hud.tick(client);
         });
-        LevelExtractionEvents.END_EXTRACTION.register(context -> TARGET.extract(Minecraft.getInstance()));
+        LevelExtractionEvents.END_EXTRACTION.register(context -> {
+            TARGET.extract(Minecraft.getInstance());
+            hud.project(context.levelState().cameraRenderState);
+        });
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> TARGET.render(context));
         AttackEntityCallback.EVENT.register((player,world,hand,entity,hit) -> {
             if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player && config.hitEffect) TARGET.hit(entity.getId());
