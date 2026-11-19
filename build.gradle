@@ -1,0 +1,12 @@
+plugins { id 'net.fabricmc.fabric-loom' version '1.17.21' }
+version = '1.1.0+26.3'
+group = 'dev.visualfx'
+base { archivesName = 'visualfx' }
+repositories { mavenCentral() }
+dependencies {
+ minecraft 'com.mojang:minecraft:26.3'
+ implementation 'net.fabricmc:fabric-loader:0.20.1'
+ implementation 'net.fabricmc.fabric-api:fabric-api:0.166.2+26.3'
+}
+java { toolchain.languageVersion = JavaLanguageVersion.of(25); withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.release = 25; options.encoding = 'UTF-8' }
