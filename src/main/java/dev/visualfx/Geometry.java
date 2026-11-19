@@ -1,18 +1,19 @@
 package dev.visualfx;
 
-import net.minecraft.client.render.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix4f;
 
 /** Emissive colored tube geometry; outer shells provide a cheap bounded glow. */
-public final class Geometry {
+public class Geometry {
     VertexConsumer v; Matrix4f matrix; Config c;
     double t,alpha,hit;
-    void begin(VertexConsumer v,Matrix4f matrix,Config c,double t,double alpha,double hit){this.v=v;this.matrix=matrix;this.c=c;this.t=t;this.alpha=alpha;this.hit=hit;}
-    void end(){v=null;matrix=null;c=null;}
-    void vertex(double x,double y,double z,int color,int a){v.vertex(matrix,(float)x,(float)y,(float)z).color((a<<24)|color);}
+    int forcedColor=-1;
+    void begin(VertexConsumer v,Matrix4f matrix,Config c,double t,double alpha,double hit){this.v=v;this.matrix=matrix;this.c=c;this.t=t;this.alpha=alpha;this.hit=hit*c.hitStrength;}
+    void end(){v=null;matrix=null;c=null;forcedColor=-1;}
+    void vertex(double x,double y,double z,int color,int a){v.addVertex(matrix,(float)x,(float)y,(float)z).setColor((a<<24)|color);}
     void line(double x,double y,double z,double X,double Y,double Z,double width,double phase) {
-        int color=c.color(t*.45+phase);
-        for(int pass=0;pass<3;pass++) {
+        int color=forcedColor>=0?forcedColor:c.color(t*.45+phase);
+        for(int pass=0;pass<c.glowPasses();pass++) {
             double w=width*(pass==0?1:pass==1?2.2:4.8)*(1+hit*.5);
             int a=(int)(Math.clamp(alpha*(pass==0?.92:pass==1?.2*c.glow:.055*c.glow)*(1+hit),0,1)*255);
             // Two perpendicular ribbons form a small volumetric cross section.
@@ -23,10 +24,11 @@ public final class Geometry {
         }
     }
     void ring(double y,double radius,double tilt,double rotation,double width) {
-        for(int i=0;i<96;i++) {
-            double a=i*Math.PI*2/96+rotation,b=(i+1)*Math.PI*2/96+rotation;
+        int segments=c.detailSegments(96);
+        for(int i=0;i<segments;i++) {
+            double a=i*Math.PI*2/segments+rotation,b=(i+1)*Math.PI*2/segments+rotation;
             double pulse=.65+.35*Math.sin(a*3-t*3);
-            line(Math.cos(a)*radius,y+Math.sin(a)*radius*Math.sin(tilt),Math.sin(a)*radius*Math.cos(tilt),Math.cos(b)*radius,y+Math.sin(b)*radius*Math.sin(tilt),Math.sin(b)*radius*Math.cos(tilt),width*pulse,i/96.0);
+            line(Math.cos(a)*radius,y+Math.sin(a)*radius*Math.sin(tilt),Math.sin(a)*radius*Math.cos(tilt),Math.cos(b)*radius,y+Math.sin(b)*radius*Math.sin(tilt),Math.sin(b)*radius*Math.cos(tilt),width*pulse,i/(double)segments);
         }
     }
     void shard(double a,double y,double r,double size) {
@@ -35,3 +37,12 @@ public final class Geometry {
         line(x,y-size,z,x-Math.cos(a+.8)*size,y,z-Math.sin(a+.8)*size,.01,a+.5);
     }
 }
+
+
+
+
+
+
+
+
+
