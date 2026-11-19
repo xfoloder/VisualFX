@@ -34,7 +34,7 @@ final class HudEditorScreen extends Screen {
             g.fill(ax-9,ay+22,ax+9,ay+50,0x88263C4B);
             g.horizontalLine(ax-5,ax+5,ay,0xFF00F5FF);g.verticalLine(ax,ay-5,ay+5,0xFF00F5FF);
         }
-        if(panel==Panel.WATERMARK)Watermark.draw(g,font,placement.x,placement.y,placement.scale,VisualFX.config.watermarkPalette,System.nanoTime()/1e9);
+        if(panel==Panel.WATERMARK)Watermark.preview(g,font,placement.x,placement.y,placement.scale,VisualFX.config.watermarkPalette,System.nanoTime()/1e9);
         else if(panel==Panel.EFFECT_STATUS)EffectStatus.preview(g,font,placement.x,placement.y,placement.scale);
         else {
             g.pose().pushMatrix();g.pose().translate((float)placement.x,(float)placement.y).scale((float)placement.scale,(float)placement.scale);

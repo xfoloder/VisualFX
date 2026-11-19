@@ -31,7 +31,7 @@ public final class TerminalScreen extends Screen {
         EFFECT_STATUS("Effect Status", "Показывает активные эффекты, их уровни и оставшееся время."),
         EFFECT_STATUS_SCALE("Размер панели", "Масштаб окна эффектов от 50% до 200%.",.5,2),
         EFFECT_STATUS_POSITION("Положение панели", "Откройте редактор и перетащите окно эффектов мышью."),
-        WATERMARK("Watermark", "Показывает название VisualFX и версию Minecraft."),
+        WATERMARK("Watermark", "Показывает название VisualFX, версию Minecraft, FPS и пинг."),
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
@@ -268,7 +268,8 @@ public final class TerminalScreen extends Screen {
             case EFFECT_STATUS->EffectStatus.previewInside(g,font,x+4,y+4,w-8,h-8,c.effectStatusScale);
             case WATERMARK->{
                 text(g,"Watermark",x+6,y+8,0x39FF14);
-                Watermark.draw(g,font,x+4,y+30,Math.min(1,(w-8)/172.0),c.watermarkPalette,time);
+                double scale=Math.min(1,Math.min((w-8)/(double)Watermark.WIDTH,(h-30)/(double)Watermark.HEIGHT));
+                Watermark.preview(g,font,x+4,y+30,scale,c.watermarkPalette,time);
             }
             case OPTIMIZATION->{
                 text(g,Optimizer.NAMES[c.optimizationPreset],x+6,y+8,0x39FF14);
