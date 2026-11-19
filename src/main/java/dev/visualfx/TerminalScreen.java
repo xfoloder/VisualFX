@@ -28,6 +28,9 @@ public final class TerminalScreen extends Screen {
         ECHO_PULSE("Импульс удара", "При атаке вдоль записи движения проходит световой импульс."),
         HUD_SCALE("Размер TargetHUD", "Масштаб панели цели от 50% до 200%.",.5,2),
         HUD_POSITION("Смещение от цели", "Панель следует за игроком. В редакторе задайте её смещение от головы цели."),
+        EFFECT_STATUS("Effect Status", "Показывает активные эффекты, их уровни и оставшееся время."),
+        EFFECT_STATUS_SCALE("Размер панели", "Масштаб окна эффектов от 50% до 200%.",.5,2),
+        EFFECT_STATUS_POSITION("Положение панели", "Откройте редактор и перетащите окно эффектов мышью."),
         WATERMARK("Watermark", "Показывает название VisualFX и версию Minecraft."),
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
@@ -62,6 +65,7 @@ public final class TerminalScreen extends Screen {
             case HIT_DURATION->c.hitDuration;
             case ECHO_LENGTH->c.echoLength;case ECHO_GHOSTS->c.echoGhosts;case ECHO_INTENSITY->c.echoIntensity;
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
+            case EFFECT_STATUS_SCALE->c.effectStatusScale;
             case MUSIC_VOLUME->c.musicVolume;
             case MENU_SCALE->c.menuScale;
             case GLOW->c.glow; case SHARDS->c.shards; case SMOOTHING->c.smoothing; case OPACITY->c.menuOpacity;
@@ -72,6 +76,7 @@ public final class TerminalScreen extends Screen {
             case HIT_DURATION->c.hitDuration=value;
             case ECHO_LENGTH->c.echoLength=value;case ECHO_GHOSTS->c.echoGhosts=(int)Math.round(value);case ECHO_INTENSITY->c.echoIntensity=value;
             case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
+            case EFFECT_STATUS_SCALE->c.effectStatusScale=value;
             case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
             case MENU_SCALE->c.menuScale=value;
             case GLOW->c.glow=value; case SHARDS->c.shards=(int)Math.round(value);
@@ -83,6 +88,7 @@ public final class TerminalScreen extends Screen {
         NEON_ECHO("Neon Echo",new Setting[]{Setting.ECHO,Setting.ECHO_COLOR,Setting.COLOR_EDIT,Setting.ECHO_LENGTH,Setting.ECHO_GHOSTS,Setting.ECHO_INTENSITY,Setting.ECHO_PULSE}),
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.COLOR_EDIT,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.COLOR_EDIT,Setting.HUD_SCALE,Setting.HUD_POSITION}),
+        EFFECT_STATUS("Effect Status",new Setting[]{Setting.EFFECT_STATUS,Setting.EFFECT_STATUS_SCALE,Setting.EFFECT_STATUS_POSITION}),
         WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.COLOR_EDIT,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
         OPTIMIZATION("Оптимизация",new Setting[]{Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
@@ -95,7 +101,7 @@ public final class TerminalScreen extends Screen {
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
         MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU}),
-        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
+        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.EFFECT_STATUS,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
     }
@@ -161,8 +167,9 @@ public final class TerminalScreen extends Screen {
         case COLOR_EDIT->"Открыть";
         case MENU_SCALE->Math.round(c.menuScale*100)+"%";case MENU_CENTER->"По центру";
         case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
-        case HUD_POSITION,WATERMARK_POSITION->"Переместить";
-        case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
+        case EFFECT_STATUS->c.effectStatus?"Вкл.":"Выкл.";
+        case HUD_POSITION,WATERMARK_POSITION,EFFECT_STATUS_POSITION->"Переместить";
+        case HUD_SCALE,WATERMARK_SCALE,EFFECT_STATUS_SCALE->Math.round(s.value(c)*100)+"%";
         case DEATH->c.deathEffect?"Вкл.":"Выкл."; case DEATH_MODE->DeathEffectSystem.NAMES[c.deathMode];
         case TARGET->c.enabled?"Вкл.":"Выкл."; case HIT->c.hitEffect?"Вкл.":"Выкл.";
         case HIT_MODE->HitEffects.NAMES[c.hitMode];case HIT_DURATION->String.format(Locale.ROOT,"%.2f с",c.hitDuration);
@@ -203,7 +210,8 @@ public final class TerminalScreen extends Screen {
             boolean hover=mx>=x&&mx<x+featureWidth-3&&my>=top+57&&my<top+78;
             g.fill(x,top+57,x+featureWidth-3,top+78,tint(item==feature?0x20333E:hover?0x18242E:0x0C141C,c.menuOpacity));
             if(item==feature)g.fill(x,top+77,x+featureWidth-3,top+79,tint(category.color,1));
-            fitted(g,item.title,x+9,top+63,item==feature?0xFFFFFF:0x91A5AC,featureWidth-16);
+            String tabTitle=item==Feature.EFFECT_STATUS&&font.width(item.title)>featureWidth-16?"Эффекты":item.title;
+            fitted(g,tabTitle,x+9,top+63,item==feature?0xFFFFFF:0x91A5AC,featureWidth-16);
         }
         Setting hovered=null;
         for(int i=scrollOffset;i<Math.min(feature.settings.length,scrollOffset+visibleRows);i++){
@@ -257,6 +265,7 @@ public final class TerminalScreen extends Screen {
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
             case TARGET_HUD->{if(h>=90)TargetHud.preview(g,font,x,y,w,c,time,visibility);}
+            case EFFECT_STATUS->EffectStatus.previewInside(g,font,x+4,y+4,w-8,h-8,c.effectStatusScale);
             case WATERMARK->{
                 text(g,"Watermark",x+6,y+8,0x39FF14);
                 Watermark.draw(g,font,x+4,y+30,Math.min(1,(w-8)/172.0),c.watermarkPalette,time);
@@ -304,8 +313,10 @@ public final class TerminalScreen extends Screen {
                 VisualFX.config.save();minecraft.gui.setScreen(new ColorEditorScreen(this,target));return true;
             }
             if(s==Setting.MUSIC_OPEN){VisualFX.config.save();minecraft.gui.setScreen(new SoundCloudScreen(this));return true;}
-            if(s==Setting.HUD_POSITION||s==Setting.WATERMARK_POSITION){
-                VisualFX.config.save();minecraft.gui.setScreen(new HudEditorScreen(this,s==Setting.WATERMARK_POSITION));return true;
+            if(s==Setting.HUD_POSITION||s==Setting.WATERMARK_POSITION||s==Setting.EFFECT_STATUS_POSITION){
+                HudEditorScreen.Panel panel=s==Setting.EFFECT_STATUS_POSITION?HudEditorScreen.Panel.EFFECT_STATUS:
+                    s==Setting.WATERMARK_POSITION?HudEditorScreen.Panel.WATERMARK:HudEditorScreen.Panel.TARGET_HUD;
+                VisualFX.config.save();minecraft.gui.setScreen(new HudEditorScreen(this,panel));return true;
             }
 
 
@@ -319,6 +330,7 @@ public final class TerminalScreen extends Screen {
                 case OPT_RESTORE->optimizationMessage=Optimizer.restore();
                                 case HUD->c.targetHud=!c.targetHud;
                 case WATERMARK->c.watermark=!c.watermark;
+                case EFFECT_STATUS->c.effectStatus=!c.effectStatus;
                 case ECHO->c.neonEcho=!c.neonEcho;case ECHO_PULSE->c.echoPulse=!c.echoPulse;
                 case COLOR,HUD_COLOR,WATERMARK_COLOR,ECHO_COLOR->{
                     int start=left+settingsWidth/2,swatchWidth=(settingsWidth/2-16)/7;

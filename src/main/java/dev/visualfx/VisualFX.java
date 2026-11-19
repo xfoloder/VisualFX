@@ -19,6 +19,7 @@ public final class VisualFX implements ClientModInitializer {
     private boolean held;
     private final TargetHud hud=new TargetHud();
     private final Watermark watermark=new Watermark();
+    private final EffectStatus effectStatus=new EffectStatus();
     @Override public void onInitializeClient() {
         config=Config.load();
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
@@ -28,6 +29,9 @@ public final class VisualFX implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
             net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","watermark"),watermark::render);
+        net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
+            net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","effect_status"),effectStatus::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean down=InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
             if(down&&!held) {
@@ -37,7 +41,7 @@ public final class VisualFX implements ClientModInitializer {
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
-            held=down; TARGET.tick(client);hud.tick(client);
+            held=down; TARGET.tick(client);hud.tick(client);effectStatus.tick(client);
         });
         LevelExtractionEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());

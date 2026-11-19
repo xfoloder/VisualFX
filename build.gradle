@@ -1,5 +1,5 @@
 plugins { id 'net.fabricmc.fabric-loom' version '1.17.21' }
-version = '1.17.4+26.3'
+version = '1.18.0+26.3'
 group = 'dev.visualfx'
 base { archivesName = 'visualfx' }
 repositories { mavenCentral() }

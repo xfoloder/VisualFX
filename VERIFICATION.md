@@ -1,3 +1,3 @@
-# VisualFX 1.17.4 — Minecraft 26.3
+# VisualFX 1.18.0 — Minecraft 26.3
 
-Чистая сборка Gradle `clean assemble` прошла. В установочном JAR отсутствуют классы Aim Assist и конфигурация его Mixin.
+Сборка Gradle assemble прошла. Отображение эффектов и работа редактора в игровой сессии не проверялись.
