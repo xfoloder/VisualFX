@@ -31,7 +31,8 @@ public final class VisualFX implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean down=InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
             if(down&&!held) {
-                if(client.gui.screen() instanceof SoundCloudScreen music) music.onClose();
+                if(client.gui.screen() instanceof ColorEditorScreen color) color.onClose();
+                else if(client.gui.screen() instanceof SoundCloudScreen music) music.onClose();
                 else if(client.gui.screen() instanceof HudEditorScreen e) e.onClose();
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());

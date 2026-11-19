@@ -14,7 +14,7 @@ final class Watermark {
         draw(g,c.font,placement.x,placement.y,placement.scale,cfg.watermarkPalette,System.nanoTime()/1e9);
     }
     static void draw(GuiGraphicsExtractor g,Font font,double x,double y,double scale,int palette,double time){
-        int accent=0xFF000000|Config.paletteColor(palette,time*.45);
+        int accent=0xFF000000|VisualFX.config.watermarkStyle.sample(palette,time*.45);
         g.pose().pushMatrix();g.pose().translate((float)x,(float)y).scale((float)scale,(float)scale);
         g.fill(0,0,172,24,0xEE080F19);g.outline(0,0,172,24,accent);
         g.fill(0,0,3,24,accent);
@@ -23,3 +23,4 @@ final class Watermark {
         g.pose().popMatrix();
     }
 }
+

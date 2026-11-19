@@ -30,9 +30,12 @@ public final class Config {
     public Optimizer.Snapshot optimizationBackup;
     public String soundCloudUrl="";
     public int musicVolume=60;
-    public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
+    public ColorStyle espStyle=new ColorStyle(0x39FF14,0xB026FF);
+    public ColorStyle hudStyle=new ColorStyle(0x00F5FF,0xFF00CC);
+    public ColorStyle watermarkStyle=new ColorStyle(0x39FF14,0x00F5FF);
+    public static final int[] COLORS = ColorStyle.PRESETS;
     public void clamp() {
-        mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,5);
+        mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,7);
         hitMode=Math.floorMod(hitMode,HitEffects.NAMES.length);hitDuration=limit(hitDuration,.25,1.2);
         shards = Math.clamp(shards,0,48);
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
@@ -40,14 +43,18 @@ public final class Config {
         menuOpacity = limit(menuOpacity,.25,1); hitStrength = limit(hitStrength,.1,2);
         menuScale=limit(menuScale,.65,1.5);menuX=limit(menuX,0,1);menuY=limit(menuY,0,1);
         deathMode = Math.floorMod(deathMode,2);
-        hudPalette = Math.floorMod(hudPalette,5);
+        hudPalette = Math.floorMod(hudPalette,7);
         hudScale=limit(hudScale,.5,2);hudX=limit(hudX,0,1);hudY=limit(hudY,0,1);
         hudOffsetX=limit(hudOffsetX,-2048,2048);hudOffsetY=limit(hudOffsetY,-2048,2048);
-        watermarkPalette=Math.floorMod(watermarkPalette,5);
+        watermarkPalette=Math.floorMod(watermarkPalette,7);
         watermarkScale=limit(watermarkScale,.5,2);watermarkX=limit(watermarkX,0,1);watermarkY=limit(watermarkY,0,1);
         optimizationPreset=Math.floorMod(optimizationPreset,3);
         musicVolume=Math.clamp(musicVolume,0,100);
         if(soundCloudUrl==null||soundCloudUrl.length()>2048)soundCloudUrl="";
+        if(espStyle==null)espStyle=new ColorStyle(0x39FF14,0xB026FF);
+        if(hudStyle==null)hudStyle=new ColorStyle(0x00F5FF,0xFF00CC);
+        if(watermarkStyle==null)watermarkStyle=new ColorStyle(0x39FF14,0x00F5FF);
+        espStyle.clamp();hudStyle.clamp();watermarkStyle.clamp();
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {
@@ -64,15 +71,13 @@ public final class Config {
         catch(Exception e) { VisualFX.LOG.warn("Cannot save VisualFX configuration", e);return false; }
     }
     public int color(double phase) {
-        return paletteColor(palette,phase);
+        return espStyle.sample(palette,phase);
     }
     public int effectShards(){return optimization?Math.min(shards,switch(optimizationPreset){case 0->24;case 1->12;default->6;}):shards;}
     public int detailSegments(int original){return optimization?Math.max(12,original/(optimizationPreset+2)):original;}
     public int glowPasses(){return optimization?(optimizationPreset==0?2:1):3;}
     public static int paletteColor(int palette,double phase) {
-        if(palette<4) return COLORS[palette];
-        double x=((phase%4)+4)%4; int a=COLORS[(int)x],b=COLORS[((int)x+1)%4]; double f=x-(int)x;
-        return ((int)(((a>>16)&255)*(1-f)+((b>>16)&255)*f)<<16)|((int)(((a>>8)&255)*(1-f)+((b>>8)&255)*f)<<8)|(int)((a&255)*(1-f)+(b&255)*f);
+        return ColorStyle.preset(palette,phase);
     }
 }
 
