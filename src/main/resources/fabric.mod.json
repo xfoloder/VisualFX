@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"visualfx","version":"1.0.0","name":"VisualFX","description":"Neon target effects and a cyber terminal control panel.","environment":"client","entrypoints":{"client":["dev.visualfx.VisualFX"]},"depends":{"fabricloader":">=0.18.4","minecraft":"1.21.11","java":">=21","fabric-api":"*"},"license":"MIT"}
