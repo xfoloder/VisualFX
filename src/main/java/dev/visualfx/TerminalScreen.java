@@ -27,6 +27,9 @@ public final class TerminalScreen extends Screen {
         OPT_PRESET("Пресет", "Выберите баланс качества, больше FPS или минимум нагрузки. Настройки Minecraft меняются кнопкой ниже."),
         OPT_APPLY("Применить к игре", "Снижает дальность, облака и частицы. Исходные значения сохраняются для восстановления."),
         OPT_RESTORE("Вернуть настройки", "Восстанавливает значения Minecraft до первого применения пресета и отключает лёгкие эффекты."),
+        MUSIC_OPEN("Плеер SoundCloud", "Открывает управление. Звук воспроизводится официальным виджетом в браузере."),
+        MUSIC_VOLUME("Громкость музыки", "Громкость SoundCloud, независимо от звуков Minecraft.",0,100),
+        MUSIC_DISCONNECT("Отключить плеер", "Закрывает локальное соединение. Виджет в браузере остановит воспроизведение."),
         DEATH("Death Effect", "Эффект при смерти цели, выбранной сейчас или до двух секунд назад."),
         DEATH_MODE("Эффект смерти", "Ascend — восхождение света. Exit Hell — огненный разлом."),
         MODE("Вид эффекта", "Нажмите, чтобы выбрать один из семи эффектов."),
@@ -46,12 +49,14 @@ public final class TerminalScreen extends Screen {
         double value(Config c){return switch(this){
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
+            case MUSIC_VOLUME->c.musicVolume;
             case GLOW->c.glow; case SHARDS->c.shards; case SMOOTHING->c.smoothing; case OPACITY->c.menuOpacity;
             default->0;
         };}
         void set(Config c,double value){switch(this){
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
             case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
+            case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
             case GLOW->c.glow=value; case SHARDS->c.shards=(int)Math.round(value);
             case SMOOTHING->c.smoothing=value; case OPACITY->c.menuOpacity=value;
             default->{}
@@ -62,6 +67,7 @@ public final class TerminalScreen extends Screen {
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.HUD_SCALE,Setting.HUD_POSITION}),
         WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
         OPTIMIZATION("Оптимизация",new Setting[]{Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
+        SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_STRENGTH}),
         MENU("Меню",new Setting[]{Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
@@ -70,7 +76,7 @@ public final class TerminalScreen extends Screen {
     }
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
-        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.MENU}),
+        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU}),
         VISUAL("Visual",0x00F5FF,new Feature[]{Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
@@ -122,6 +128,7 @@ public final class TerminalScreen extends Screen {
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
         case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
+        case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
         case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
         case HUD_POSITION,WATERMARK_POSITION->"Переместить";
         case HUD_SCALE,WATERMARK_SCALE->Math.round(s.value(c)*100)+"%";
@@ -204,6 +211,12 @@ public final class TerminalScreen extends Screen {
     private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
         if(h<48)return;
         switch(feature){
+            case SOUND_CLOUD->{
+                text(g,"SoundCloud",x+6,y+8,0xFF7733);
+                String info=SoundCloudPlayer.INSTANCE.connected()?"Браузер подключён. Откройте плеер для управления.":"Звук через браузер. Откройте плеер и вставьте ссылку SoundCloud.";
+                var lines=font.split(Component.literal(info),w-12);
+                for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
+            }
             case TARGET_HUD->{if(h>=90)TargetHud.preview(g,font,x,y,w,c,time,visibility);}
             case WATERMARK->{
                 text(g,"Watermark",x+6,y+8,0x39FF14);
@@ -244,6 +257,7 @@ public final class TerminalScreen extends Screen {
             if(x<left+8||x>=left+settingsWidth-8||y<rowTop||y>=rowTop+rowHeight-1)continue;
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
+            if(s==Setting.MUSIC_OPEN){VisualFX.config.save();minecraft.gui.setScreen(new SoundCloudScreen(this));return true;}
             if(s==Setting.HUD_POSITION||s==Setting.WATERMARK_POSITION){
                 VisualFX.config.save();minecraft.gui.setScreen(new HudEditorScreen(this,s==Setting.WATERMARK_POSITION));return true;
             }
@@ -251,6 +265,7 @@ public final class TerminalScreen extends Screen {
 
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
+                case MUSIC_DISCONNECT->SoundCloudPlayer.INSTANCE.stop();
                 case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
                 case OPT_PRESET->{c.optimizationPreset=(c.optimizationPreset+1)%3;optimizationMessage="";}
                 case OPT_APPLY->optimizationMessage=Optimizer.apply();

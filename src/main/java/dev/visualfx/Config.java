@@ -25,6 +25,8 @@ public final class Config {
     public boolean optimization=false;
     public int optimizationPreset=0;
     public Optimizer.Snapshot optimizationBackup;
+    public String soundCloudUrl="";
+    public int musicVolume=60;
     public static final int[] COLORS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF};
     public void clamp() {
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,5);
@@ -39,6 +41,8 @@ public final class Config {
         watermarkPalette=Math.floorMod(watermarkPalette,5);
         watermarkScale=limit(watermarkScale,.5,2);watermarkX=limit(watermarkX,0,1);watermarkY=limit(watermarkY,0,1);
         optimizationPreset=Math.floorMod(optimizationPreset,3);
+        musicVolume=Math.clamp(musicVolume,0,100);
+        if(soundCloudUrl==null||soundCloudUrl.length()>2048)soundCloudUrl="";
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {

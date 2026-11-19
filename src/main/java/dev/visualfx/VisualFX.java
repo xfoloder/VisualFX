@@ -21,6 +21,7 @@ public final class VisualFX implements ClientModInitializer {
     private final Watermark watermark=new Watermark();
     @Override public void onInitializeClient() {
         config=Config.load();
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
             net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","target_hud"),hud::render);
@@ -30,7 +31,8 @@ public final class VisualFX implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean down=InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
             if(down&&!held) {
-                if(client.gui.screen() instanceof HudEditorScreen e) e.onClose();
+                if(client.gui.screen() instanceof SoundCloudScreen music) music.onClose();
+                else if(client.gui.screen() instanceof HudEditorScreen e) e.onClose();
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
