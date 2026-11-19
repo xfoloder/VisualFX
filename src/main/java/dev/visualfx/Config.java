@@ -33,6 +33,10 @@ public final class Config {
     public ColorStyle espStyle=new ColorStyle(0x39FF14,0xB026FF);
     public ColorStyle hudStyle=new ColorStyle(0x00F5FF,0xFF00CC);
     public ColorStyle watermarkStyle=new ColorStyle(0x39FF14,0x00F5FF);
+    public boolean neonEcho=true,echoPulse=true;
+    public double echoLength=.9,echoIntensity=.7;
+    public int echoGhosts=5,echoPalette=6;
+    public ColorStyle echoStyle=new ColorStyle(0x39FF14,0x00F5FF);
     public static final int[] COLORS = ColorStyle.PRESETS;
     public void clamp() {
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,7);
@@ -55,6 +59,10 @@ public final class Config {
         if(hudStyle==null)hudStyle=new ColorStyle(0x00F5FF,0xFF00CC);
         if(watermarkStyle==null)watermarkStyle=new ColorStyle(0x39FF14,0x00F5FF);
         espStyle.clamp();hudStyle.clamp();watermarkStyle.clamp();
+        echoLength=limit(echoLength,.25,1.5);echoIntensity=limit(echoIntensity,.2,1);
+        echoGhosts=Math.clamp(echoGhosts,2,8);echoPalette=Math.floorMod(echoPalette,7);
+        if(echoStyle==null)echoStyle=new ColorStyle(0x39FF14,0x00F5FF);
+        echoStyle.clamp();
     }
     private static double limit(double n,double a,double b) { return Double.isFinite(n)?Math.clamp(n,a,b):a; }
     public static Config load() {

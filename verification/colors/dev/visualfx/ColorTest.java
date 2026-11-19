@@ -21,7 +21,9 @@ public final class ColorTest {
   Config config=new Config();int originalEsp=config.espStyle.start;ColorStyle draft=new ColorStyle(0x123456,0xABCDEF);
   ColorTarget.HUD.apply(config,6,draft);draft.start=0;assert config.hudStyle.start==0x123456;assert config.espStyle.start==originalEsp;assert config.watermarkPalette==0;
   ColorTarget.ESP.apply(config,5,draft);assert config.hudPalette==6&&config.hudStyle.start==0x123456;
+  ColorTarget.ECHO.apply(config,6,new ColorStyle(0x113355,0xFFCC00));assert config.echoStyle.start==0x113355&&config.hudStyle.start==0x123456;
   ColorStyle legacy=gson.fromJson("{}",ColorStyle.class);assert legacy.start==0x39FF14&&legacy.speed==.35;
   System.out.println("PASS: HEX validation, RGB formatting, blend endpoints, "+samples+" palette samples, gradient cycle, invalid-value normalization, JSON round trip, independent targets and draft copy");
  }
 }
+

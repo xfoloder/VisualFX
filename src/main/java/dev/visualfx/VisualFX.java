@@ -45,7 +45,7 @@ public final class VisualFX implements ClientModInitializer {
         });
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> TARGET.render(context));
         AttackEntityCallback.EVENT.register((player,world,hand,entity,hit) -> {
-            if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player targetPlayer && config.hitEffect) TARGET.hit(targetPlayer);
+            if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player targetPlayer && (config.hitEffect||config.neonEcho)) TARGET.hit(targetPlayer);
             return InteractionResult.PASS;
         });
     }

@@ -8,7 +8,7 @@ final class EffectPreview extends Geometry {
     private GuiGraphicsExtractor gui;
     private double cx,cy,scale,fade;
 
-    void draw(GuiGraphicsExtractor gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview,boolean hitPreview){
+    void draw(GuiGraphicsExtractor gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview,boolean hitPreview,boolean echoPreview){
         if(height<48)return;
         this.gui=gui;this.c=config;this.t=seconds;this.alpha=1;this.hit=0;this.fade=fade;
         gui.fill(x,y,x+width,y+height,argb(0x09131D,.85));
@@ -18,6 +18,7 @@ final class EffectPreview extends Geometry {
         cx=x+width*.5;scale=Math.min((width-18)/4.2,(height-32)/3.3);cy=y+22+(height-32)*.5+scale*.6;
         if(deathPreview){scale=Math.min((width-18)/4.2,(height-32)/4.1);cy=y+height-12;}
         if(hitPreview){scale=Math.min((width-18)/7.2,(height-32)/4.2);cy=y+22+(height-32)*.5+scale*.7;}
+        if(echoPreview){scale=Math.min((width-18)/5.0,(height-32)/3.2);cx=x+width*.7;}
         // A calm wireframe stage keeps the animated neon shape easy to read.
         for(int i=-2;i<=2;i++){
             plainLine(cx-scale*1.6,cy+scale*.17+i*3,cx+scale*1.6,cy+scale*.17+i*3,1,0x213341,.5);
@@ -37,6 +38,8 @@ final class EffectPreview extends Geometry {
         }else if(hitPreview){
             double age=seconds%(config.hitDuration+.65);
             if(age<config.hitDuration)HitEffects.draw(this,1.8,1-age/config.hitDuration,config.hitMode);
+        }else if(echoPreview){
+            EchoVisual.draw(this,EchoHistory.demo(seconds,config.echoLength),config.optimization?Math.min(3,config.echoGhosts):config.echoGhosts,config.echoIntensity,config.echoPulse?1-(seconds%1.2)/1.2:0);
         }else Effects.MODES[config.mode].draw(this,1.8);
         gui.disableScissor();
         this.gui=null;this.c=null;

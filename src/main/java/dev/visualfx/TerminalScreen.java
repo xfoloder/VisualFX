@@ -20,6 +20,12 @@ public final class TerminalScreen extends Screen {
         HUD("TargetHUD", "Показывает имя и здоровье игрока под прицелом."),
         HUD_COLOR("Палитра TargetHUD", "Нажмите образец: готовый цвет, перелив, свой цвет или свой градиент."),
         COLOR_EDIT("Редактор цветов", "RGB, HEX и собственный градиент. Изменения сохраняются кнопкой «Применить»."),
+        ECHO("Neon Echo", "Неоновая запись движения выбранного игрока. Работает отдельно от Target ESP."),
+        ECHO_COLOR("Цвет отголосков", "Собственная палитра и градиент Neon Echo."),
+        ECHO_LENGTH("Длина записи", "Сколько секунд движения хранится в световом следе.",.25,1.5),
+        ECHO_GHOSTS("Отголоски", "Количество геометрических силуэтов. В оптимизации — не больше трёх.",2,8),
+        ECHO_INTENSITY("Интенсивность", "Яркость силуэтов и соединяющих их световых лент.",.2,1),
+        ECHO_PULSE("Импульс удара", "При атаке вдоль записи движения проходит световой импульс."),
         HUD_SCALE("Размер TargetHUD", "Масштаб панели цели от 50% до 200%.",.5,2),
         HUD_POSITION("Смещение от цели", "Панель следует за игроком. В редакторе задайте её смещение от головы цели."),
         WATERMARK("Watermark", "Показывает название VisualFX и версию Minecraft."),
@@ -54,6 +60,7 @@ public final class TerminalScreen extends Screen {
         double value(Config c){return switch(this){
             case HIT_STRENGTH->c.hitStrength; case SPEED->c.speed; case RADIUS->c.radius;
             case HIT_DURATION->c.hitDuration;
+            case ECHO_LENGTH->c.echoLength;case ECHO_GHOSTS->c.echoGhosts;case ECHO_INTENSITY->c.echoIntensity;
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
             case MUSIC_VOLUME->c.musicVolume;
             case MENU_SCALE->c.menuScale;
@@ -63,6 +70,7 @@ public final class TerminalScreen extends Screen {
         void set(Config c,double value){switch(this){
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
             case HIT_DURATION->c.hitDuration=value;
+            case ECHO_LENGTH->c.echoLength=value;case ECHO_GHOSTS->c.echoGhosts=(int)Math.round(value);case ECHO_INTENSITY->c.echoIntensity=value;
             case HUD_SCALE->c.hudScale=value; case WATERMARK_SCALE->c.watermarkScale=value;
             case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
             case MENU_SCALE->c.menuScale=value;
@@ -72,6 +80,7 @@ public final class TerminalScreen extends Screen {
         }}
     }
     private enum Feature {
+        NEON_ECHO("Neon Echo",new Setting[]{Setting.ECHO,Setting.ECHO_COLOR,Setting.COLOR_EDIT,Setting.ECHO_LENGTH,Setting.ECHO_GHOSTS,Setting.ECHO_INTENSITY,Setting.ECHO_PULSE}),
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.COLOR_EDIT,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.COLOR_EDIT,Setting.HUD_SCALE,Setting.HUD_POSITION}),
         WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.COLOR_EDIT,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
@@ -86,14 +95,14 @@ public final class TerminalScreen extends Screen {
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
         MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU}),
-        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
+        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.DEATH_EFFECT});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
     }
     private static final String[] PALETTES={"Зелёный","Розовый","Голубой","Фиолетовый","Перелив","Свой цвет","Свой градиент"};
     private static final Style FONT=Style.EMPTY;
     private static Category lastCategory=Category.VISUAL;
-    private static Feature lastFeature=Feature.TARGET_ESP;
+    private static Feature lastFeature=Feature.NEON_ECHO;
     private Category category=lastCategory;
     private Feature feature=lastFeature;
     private Setting dragging;
@@ -143,6 +152,9 @@ public final class TerminalScreen extends Screen {
     }
     private String value(Setting s,Config c){return switch(s){
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
+        case ECHO->c.neonEcho?"Вкл.":"Выкл.";case ECHO_PULSE->c.echoPulse?"Вкл.":"Выкл.";
+        case ECHO_COLOR->PALETTES[c.echoPalette];case ECHO_GHOSTS->Integer.toString(c.echoGhosts);
+        case ECHO_LENGTH->String.format(Locale.ROOT,"%.2f с",c.echoLength);case ECHO_INTENSITY->Math.round(c.echoIntensity*100)+"%";
         case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
@@ -201,8 +213,8 @@ public final class TerminalScreen extends Screen {
             g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
             if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(category.color,1));
             fitted(g,s.label,left+18,y,0xD0DCE3,settingsWidth/2-26);
-            if(s==Setting.COLOR||s==Setting.HUD_COLOR||s==Setting.WATERMARK_COLOR){
-                ColorTarget target=s==Setting.COLOR?ColorTarget.ESP:s==Setting.HUD_COLOR?ColorTarget.HUD:ColorTarget.WATERMARK;
+            if(s==Setting.COLOR||s==Setting.HUD_COLOR||s==Setting.WATERMARK_COLOR||s==Setting.ECHO_COLOR){
+                ColorTarget target=s==Setting.ECHO_COLOR?ColorTarget.ECHO:s==Setting.COLOR?ColorTarget.ESP:s==Setting.HUD_COLOR?ColorTarget.HUD:ColorTarget.WATERMARK;
                 palette(g,left+settingsWidth/2,y-1,settingsWidth/2-16,target.palette(c),now/1e9,target.style(c));
             }
             else fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
@@ -254,7 +266,7 @@ public final class TerminalScreen extends Screen {
                 var lines=font.split(Component.literal(Optimizer.DETAILS[c.optimizationPreset]),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
-            case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT,feature==Feature.HIT_EFFECT);
+            case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT,NEON_ECHO->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT,feature==Feature.HIT_EFFECT,feature==Feature.NEON_ECHO);
             case MENU->{
                 text(g,"Настройки меню",x+6,y+8,0x39FF14);
                 var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Размер — ползунком слева. Right Shift — закрыть меню."),w-12);
@@ -288,7 +300,7 @@ public final class TerminalScreen extends Screen {
             Config c=VisualFX.config;
             if(s!=Setting.RESET)resetDeadline=0;
             if(s==Setting.COLOR_EDIT){
-                ColorTarget target=feature==Feature.TARGET_HUD?ColorTarget.HUD:feature==Feature.WATERMARK?ColorTarget.WATERMARK:ColorTarget.ESP;
+                ColorTarget target=feature==Feature.NEON_ECHO?ColorTarget.ECHO:feature==Feature.TARGET_HUD?ColorTarget.HUD:feature==Feature.WATERMARK?ColorTarget.WATERMARK:ColorTarget.ESP;
                 VisualFX.config.save();minecraft.gui.setScreen(new ColorEditorScreen(this,target));return true;
             }
             if(s==Setting.MUSIC_OPEN){VisualFX.config.save();minecraft.gui.setScreen(new SoundCloudScreen(this));return true;}
@@ -307,9 +319,10 @@ public final class TerminalScreen extends Screen {
                 case OPT_RESTORE->optimizationMessage=Optimizer.restore();
                                 case HUD->c.targetHud=!c.targetHud;
                 case WATERMARK->c.watermark=!c.watermark;
-                case COLOR,HUD_COLOR,WATERMARK_COLOR->{
+                case ECHO->c.neonEcho=!c.neonEcho;case ECHO_PULSE->c.echoPulse=!c.echoPulse;
+                case COLOR,HUD_COLOR,WATERMARK_COLOR,ECHO_COLOR->{
                     int start=left+settingsWidth/2,swatchWidth=(settingsWidth/2-16)/7;
-                    ColorTarget target=s==Setting.COLOR?ColorTarget.ESP:s==Setting.HUD_COLOR?ColorTarget.HUD:ColorTarget.WATERMARK;
+                    ColorTarget target=s==Setting.ECHO_COLOR?ColorTarget.ECHO:s==Setting.COLOR?ColorTarget.ESP:s==Setting.HUD_COLOR?ColorTarget.HUD:ColorTarget.WATERMARK;
                     int selected=x>=start?Math.clamp((int)((x-start)/Math.max(1,swatchWidth)),0,6):(target.palette(c)+1)%7;
                     target.apply(c,selected,target.style(c));
                 }
