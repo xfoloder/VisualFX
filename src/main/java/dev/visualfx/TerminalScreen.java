@@ -36,6 +36,7 @@ public final class TerminalScreen extends Screen {
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
         OPT_LIGHT("Лёгкие эффекты", "Уменьшает детализацию и число осколков VisualFX. Выключение возвращает полное качество."),
+        RUST_GEOMETRY("Расчёт геометрии", "Переключает Java и Rust для сравнения FPS при одинаковых эффектах. Rust доступен на Windows x64."),
         OPT_PRESET("Пресет", "Выберите баланс качества, больше FPS или минимум нагрузки. Настройки Minecraft меняются кнопкой ниже."),
         OPT_APPLY("Применить к игре", "Снижает дальность, облака и частицы. Исходные значения сохраняются для восстановления."),
         OPT_RESTORE("Вернуть настройки", "Восстанавливает значения Minecraft до первого применения пресета и отключает лёгкие эффекты."),
@@ -90,7 +91,7 @@ public final class TerminalScreen extends Screen {
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.COLOR_EDIT,Setting.HUD_SCALE,Setting.HUD_POSITION}),
         EFFECT_STATUS("Effect Status",new Setting[]{Setting.EFFECT_STATUS,Setting.EFFECT_STATUS_SCALE,Setting.EFFECT_STATUS_POSITION}),
         WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.COLOR_EDIT,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
-        OPTIMIZATION("Оптимизация",new Setting[]{Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
+        OPTIMIZATION("Оптимизация",new Setting[]{Setting.RUST_GEOMETRY,Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_MODE,Setting.HIT_STRENGTH,Setting.HIT_DURATION}),
@@ -162,6 +163,7 @@ public final class TerminalScreen extends Screen {
         case ECHO_COLOR->PALETTES[c.echoPalette];case ECHO_GHOSTS->Integer.toString(c.echoGhosts);
         case ECHO_LENGTH->String.format(Locale.ROOT,"%.2f с",c.echoLength);case ECHO_INTENSITY->Math.round(c.echoIntensity*100)+"%";
         case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
+        case RUST_GEOMETRY->c.rustGeometry?"Rust":"Java";
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
         case COLOR_EDIT->"Открыть";
@@ -326,6 +328,13 @@ public final class TerminalScreen extends Screen {
                 case MUSIC_DISCONNECT->SoundCloudPlayer.INSTANCE.stop();
                 case MENU_CENTER->{c.menuX=.5;c.menuY=.5;}
                 case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
+                case RUST_GEOMETRY->{
+                    c.rustGeometry=!c.rustGeometry;
+                    if(c.rustGeometry&&!RustGeometry.available()){
+                        c.rustGeometry=false;
+                        optimizationMessage="Rust недоступен. Используется Java.";
+                    }else optimizationMessage="Расчёт геометрии: "+(c.rustGeometry?"Rust":"Java");
+                }
                 case OPT_PRESET->{c.optimizationPreset=(c.optimizationPreset+1)%3;optimizationMessage="";}
                 case OPT_APPLY->optimizationMessage=Optimizer.apply();
                 case OPT_RESTORE->optimizationMessage=Optimizer.restore();

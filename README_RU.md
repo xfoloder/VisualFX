@@ -1,4 +1,4 @@
-# VisualFX 1.18.1 — Minecraft 1.21.11 / Fabric
+# VisualFX 1.19.0 — Minecraft 1.21.11 / Fabric
 
 Перенос последней версии со всеми функциями: 13 режимов Target ESP, TargetHUD с привязкой к игроку, Death Effect (Ascend / Exit Hell), Hit Effect, Watermark, оптимизация и управление SoundCloud.
 
@@ -6,7 +6,7 @@
 
 1. Minecraft Java Edition строго 1.21.11, Fabric Loader 0.18.4 или новее, Java 21.
 2. Удалите предыдущий JAR VisualFX из папки mods данного профиля.
-3. Поместите visualfx-1.18.1-mc1.21.11.jar и Fabric API 0.141.3+1.21.11 в mods.
+3. Поместите visualfx-1.19.0-mc1.21.11.jar и Fabric API 0.141.3+1.21.11 в mods.
 4. Запустите профиль Fabric. Установка на сервер не требуется.
 
 Fabric Installer: https://fabricmc.net/use/installer/
@@ -65,7 +65,7 @@ Hit Effect отражает локальную попытку атаки; под
 Требуются JDK 21 и интернет при первой сборке.
 Windows: gradlew.bat build
 Linux/macOS: chmod +x gradlew && ./gradlew build
-Установочный файл: build/libs/visualfx-1.18.1+1.21.11.jar (без суффикса -sources).
+Установочный файл: build/libs/visualfx-1.19.0+1.21.11.jar (без суффикса -sources).
 
 Зафиксированы Minecraft 1.21.11, официальные Mojang Mappings через Loom, Loader 0.18.4, Fabric API 0.141.3+1.21.11, Loom 1.14.10, Gradle 9.2.1. Применяется один клиентский Mixin Invoker для чтения фактического FOV и привязки TargetHUD. Исходники полных маппингов Minecraft в архив не включены.
 
@@ -79,3 +79,15 @@ Linux/macOS: chmod +x gradlew && ./gradlew build
 - **Редактор цветов** поддерживает RGB, HEX и двухцветный градиент для Target ESP, TargetHUD, Watermark и Neon Echo.
 - Основное меню перемещается мышью за заголовок. Масштаб настраивается в Misc → Меню.
 - В Target ESP также доступны звёздная клетка, радар, неоновый лотос, орбитальные кометы, квантовые кубы и грозовой контур. В Combat → Hit Effect есть ударная волна, крестовой разрез, кристальный взрыв, электроразряд, плазменная сфера и руническая печать.
+
+## Сравнение Java и Rust — 1.19.0
+
+В Misc → Оптимизация → «Расчёт геометрии» переключаются Java и Rust. Java выбрана по умолчанию. Rust доступен на Windows x64. Библиотека встроена в JAR, поэтому для установки и запуска Rust отдельно ставить ничего не нужно. Если библиотека недоступна, используется Java.
+
+Rust формирует вершины лент и свечения для визуальных эффектов мода. Java по-прежнему вычисляет форму эффектов и отправляет вершины в игровой рендерер. Настройки Minecraft переключатель не меняет.
+
+Для сравнения FPS включите Watermark и оставьте одни и те же настройки. Наведите прицел на другого игрока с включённым Target ESP. Посмотрите на FPS в течение примерно 30 секунд в режиме Java, затем повторите с Rust в той же сцене. При включённой вертикальной синхронизации или низком лимите FPS разница может быть скрыта.
+
+При сборке из архива Gradle использует включённую библиотеку. Чтобы пересобрать её из Rust-кода, установите Rust для Windows x64 MSVC и запустите `native/build.ps1`, затем повторите `gradlew.bat assemble`.
+
+[Спецификация JNI для Java 21](https://docs.oracle.com/en/java/javase/21/docs/specs/jni/design.html) · [Целевые платформы Rust для Windows MSVC](https://doc.rust-lang.org/rustc/platform-support/windows-msvc.html)
