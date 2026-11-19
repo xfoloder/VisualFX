@@ -21,7 +21,6 @@ public final class VisualFX implements ClientModInitializer {
     private final Watermark watermark=new Watermark();
     @Override public void onInitializeClient() {
         config=Config.load();
-        AimAssist.register();
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
@@ -38,7 +37,7 @@ public final class VisualFX implements ClientModInitializer {
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
-            held=down; AimAssist.tick(client);TARGET.tick(client);hud.tick(client);
+            held=down; TARGET.tick(client);hud.tick(client);
         });
         LevelExtractionEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());

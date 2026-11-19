@@ -1,3 +1,3 @@
-# Проверка VisualFX 1.17.3 — Minecraft 26.3
+# VisualFX 1.17.4 — Minecraft 26.3
 
-Сборка Gradle прошла. Проверка оружия в основной руке использует Items.MACE и штатные теги ItemTags.SWORDS и ItemTags.SPEARS. Переключение предметов в игровой сессии не проверялось.
+Чистая сборка Gradle `clean assemble` прошла. В установочном JAR отсутствуют классы Aim Assist и конфигурация его Mixin.

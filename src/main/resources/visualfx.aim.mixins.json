@@ -1,7 +1,0 @@
-{
-  "required": true,
-  "package": "dev.visualfx.mixin",
-  "compatibilityLevel": "JAVA_25",
-  "client": ["AimMouseMixin"],
-  "injectors": {"defaultRequire": 1}
-}
