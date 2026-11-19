@@ -8,15 +8,17 @@ final class EffectPreview extends Geometry {
     private GuiGraphics gui;
     private double cx,cy,scale,fade;
 
-    void draw(GuiGraphics gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview){
+    void draw(GuiGraphics gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview,boolean hitPreview,boolean echoPreview){
         if(height<48)return;
-        this.gui=gui;this.c=config;this.t=seconds;this.alpha=fade;this.hit=0;this.fade=fade;
+        this.gui=gui;this.c=config;this.t=seconds;this.alpha=1;this.hit=0;this.fade=fade;
         gui.fill(x,y,x+width,y+height,argb(0x09131D,.85));
         gui.renderOutline(x,y,width,height,argb(config.color(seconds*.45),.3));
-        gui.drawString(font,deathPreview?"Смерть: "+DeathEffectSystem.NAMES[config.deathMode]:"Предпросмотр",x+8,y+7,argb(0xC5D8E3,1),false);
+        gui.drawString(font,deathPreview?"Смерть: "+DeathEffectSystem.NAMES[config.deathMode]:hitPreview?"Эффект удара":"Предпросмотр",x+8,y+7,argb(0xC5D8E3,1),false);
         gui.enableScissor(x+1,y+21,x+width-1,y+height-1);
         cx=x+width*.5;scale=Math.min((width-18)/4.2,(height-32)/3.3);cy=y+22+(height-32)*.5+scale*.6;
         if(deathPreview){scale=Math.min((width-18)/4.2,(height-32)/4.1);cy=y+height-12;}
+        if(hitPreview){scale=Math.min((width-18)/7.2,(height-32)/4.2);cy=y+22+(height-32)*.5+scale*.7;}
+        if(echoPreview){scale=Math.min((width-18)/5.0,(height-32)/3.2);cx=x+width*.7;}
         // A calm wireframe stage keeps the animated neon shape easy to read.
         for(int i=-2;i<=2;i++){
             plainLine(cx-scale*1.6,cy+scale*.17+i*3,cx+scale*1.6,cy+scale*.17+i*3,1,0x213341,.5);
@@ -33,6 +35,11 @@ final class EffectPreview extends Geometry {
         if(deathPreview){
             double age=(seconds%3.2)/2.6;
             if(age<1){this.fade=fade*DeathEffectSystem.opacity(age);DeathEffectSystem.draw(this,1.8,age,config.deathMode);}
+        }else if(hitPreview){
+            double age=seconds%(config.hitDuration+.65);
+            if(age<config.hitDuration)HitEffects.draw(this,1.8,1-age/config.hitDuration,config.hitMode);
+        }else if(echoPreview){
+            EchoVisual.draw(this,EchoHistory.demo(seconds,config.echoLength),config.optimization?Math.min(3,config.echoGhosts):config.echoGhosts,config.echoIntensity,config.echoPulse?1-(seconds%1.2)/1.2:0);
         }else Effects.MODES[config.mode].draw(this,1.8);
         gui.disableScissor();
         this.gui=null;this.c=null;
@@ -51,10 +58,9 @@ final class EffectPreview extends Geometry {
         double px=cx+(x+z*.35)*scale,py=cy-(y-z*.2)*scale;
         double qx=cx+(X+Z*.35)*scale,qy=cy-(Y-Z*.2)*scale;
         int color=forcedColor>=0?forcedColor:c.color(t*.45+phase);
-        if(c.glow>.01&&c.glowPasses()>1)plainLine(px,py,qx,qy,2+width*scale*2,color,.1*c.glow);
-        plainLine(px,py,qx,qy,Math.max(.5,width*scale),color,.8);
+        if(c.glow>.01&&c.glowPasses()>1)plainLine(px,py,qx,qy,2+width*scale*2,color,.1*c.glow*alpha);
+        plainLine(px,py,qx,qy,Math.max(.5,width*scale),color,.8*alpha);
     }
 }
-
 
 

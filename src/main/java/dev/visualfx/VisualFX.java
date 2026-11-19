@@ -19,6 +19,7 @@ public final class VisualFX implements ClientModInitializer {
     private boolean held;
     private final TargetHud hud=new TargetHud();
     private final Watermark watermark=new Watermark();
+    private final EffectStatus effectStatus=new EffectStatus();
     @Override public void onInitializeClient() {
         config=Config.load();
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
@@ -28,15 +29,19 @@ public final class VisualFX implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
             net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","watermark"),watermark::render);
+        net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
+            net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("visualfx","effect_status"),effectStatus::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             boolean down=InputConstants.isKeyDown(client.getWindow(),InputConstants.KEY_RSHIFT);
             if(down&&!held) {
-                if(client.screen instanceof SoundCloudScreen music) music.onClose();
+                if(client.screen instanceof ColorEditorScreen color) color.onClose();
+                else if(client.screen instanceof SoundCloudScreen music) music.onClose();
                 else if(client.screen instanceof HudEditorScreen e) e.onClose();
                 else if(client.screen instanceof TerminalScreen s) s.onClose();
                 else if(client.screen==null) client.setScreen(new TerminalScreen());
             }
-            held=down; TARGET.tick(client);hud.tick(client);
+            held=down; TARGET.tick(client);hud.tick(client);effectStatus.tick(client);
         });
         WorldRenderEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());
@@ -44,12 +49,11 @@ public final class VisualFX implements ClientModInitializer {
         });
         WorldRenderEvents.AFTER_ENTITIES.register(context -> TARGET.render(context));
         AttackEntityCallback.EVENT.register((player,world,hand,entity,hit) -> {
-            if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player && config.hitEffect) TARGET.hit(entity.getId());
+            if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player targetPlayer && (config.hitEffect||config.neonEcho)) TARGET.hit(targetPlayer);
             return InteractionResult.PASS;
         });
     }
 }
-
 
 
 

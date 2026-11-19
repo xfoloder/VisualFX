@@ -10,6 +10,8 @@ import java.util.concurrent.*;
 
 /** Lazy loopback-only bridge to the official SoundCloud widget. No SoundCloud credentials or audio extraction. */
 final class SoundCloudPlayer {
+    // EMPTY must be initialized before INSTANCE: instance fields read it during construction.
+    private static final Status EMPTY=new Status(false,true,"","",0,0,"");
     static final SoundCloudPlayer INSTANCE=new SoundCloudPlayer();
     private final Gson json=new Gson();
     private HttpServer server;
@@ -19,7 +21,6 @@ final class SoundCloudPlayer {
     private final ArrayDeque<Command> commands=new ArrayDeque<>();
     private record Command(long id,String action,String text,double value){}
     record Status(boolean ready,boolean paused,String title,String artist,long position,long duration,String error){}
-    private static final Status EMPTY=new Status(false,true,"","",0,0,"");
     private volatile Status status=EMPTY;
     synchronized String localUrl(){return server==null?"":origin+base+"/";}
     synchronized boolean connected(){return server!=null&&System.currentTimeMillis()-lastStatus<5000;}
@@ -113,5 +114,4 @@ final class SoundCloudPlayer {
         e.sendResponseHeaders(code,bytes.length);e.getResponseBody().write(bytes);
     }
 }
-
 

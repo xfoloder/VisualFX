@@ -5,13 +5,17 @@ final class HudPlacement {
     double x,y,scale,w,h,travelX,travelY;
     void update(int width,int height,boolean watermark){
         Config c=VisualFX.config;
-        double baseW=watermark?172:180,baseH=watermark?24:56;
-        scale=Math.min(watermark?c.watermarkScale:c.hudScale,Math.min((width-8)/baseW,(height-8)/baseH));
+        double baseW=watermark?Watermark.WIDTH:180,baseH=watermark?Watermark.HEIGHT:56;
+        updateScreen(width,height,baseW,baseH,watermark?c.watermarkScale:c.hudScale,
+            watermark?c.watermarkX:c.hudX,watermark?c.watermarkY:c.hudY);
+        if(!watermark)follow(width*.5,height*.55,width,height);
+    }
+    void updateScreen(int width,int height,double baseW,double baseH,double requestedScale,double normalizedX,double normalizedY){
+        scale=Math.min(requestedScale,Math.min((width-8)/baseW,(height-8)/baseH));
         scale=Math.max(.1,scale);w=baseW*scale;h=baseH*scale;
         travelX=Math.max(0,width-8-w);travelY=Math.max(0,height-8-h);
-        x=4+(watermark?c.watermarkX:c.hudX)*travelX;
-        y=4+(watermark?c.watermarkY:c.hudY)*travelY;
-        if(!watermark)follow(width*.5,height*.55,width,height);
+        x=4+normalizedX*travelX;
+        y=4+normalizedY*travelY;
     }
     void follow(double anchorX,double anchorY,int width,int height){
         Config c=VisualFX.config;
@@ -19,6 +23,11 @@ final class HudPlacement {
         y=Math.clamp(anchorY-h+c.hudOffsetY,4,Math.max(4,height-h-4));
     }
     boolean contains(double px,double py){return px>=x&&px<=x+w&&py>=y&&py<=y+h;}
+    void moveEffectStatus(double px,double py){
+        var c=VisualFX.config;
+        if(travelX>0)c.effectStatusX=Math.clamp((px-4)/travelX,0,1);
+        if(travelY>0)c.effectStatusY=Math.clamp((py-4)/travelY,0,1);
+    }
     void move(double px,double py,boolean watermark){
         double nx=travelX>0?Math.clamp((px-4)/travelX,0,1):0,ny=travelY>0?Math.clamp((py-4)/travelY,0,1):0;
         if(watermark){VisualFX.config.watermarkX=nx;VisualFX.config.watermarkY=ny;}
@@ -29,5 +38,4 @@ final class HudPlacement {
         }
     }
 }
-
 

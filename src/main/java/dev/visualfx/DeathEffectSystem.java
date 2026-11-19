@@ -42,10 +42,8 @@ final class DeathEffectSystem {
             final int mode=b.mode;
             matrices.pushPose();matrices.translate(b.x-camera.x,b.y-camera.y,b.z-camera.z);
             var vertices=ctx.consumers().getBuffer(RenderTypes.debugQuads());
-            {var pose=matrices.last();
-                Geometry g=geometry.get();g.begin(vertices,pose.pose(),VisualFX.config,age*2.6,opacity(age),0);
-                draw(g,h,age,mode);g.end();
-            }
+            Geometry g=geometry.get();g.begin(vertices,matrices.last().pose(),VisualFX.config,age*2.6,opacity(age),0);
+            draw(g,h,age,mode);g.end();
             matrices.popPose();
         }
     }
@@ -87,6 +85,5 @@ final class DeathEffectSystem {
         }
     }
 }
-
 
 

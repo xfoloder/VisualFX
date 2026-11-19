@@ -1,5 +1,5 @@
 plugins { id 'fabric-loom' version '1.14.10' }
-version = '1.12.0+1.21.11'
+version = '1.18.1+1.21.11'
 group = 'dev.visualfx'
 base { archivesName = 'visualfx' }
 repositories { mavenCentral() }
@@ -11,5 +11,6 @@ dependencies {
 }
 java { toolchain.languageVersion = JavaLanguageVersion.of(21); withSourcesJar() }
 tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+
 
 

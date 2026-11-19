@@ -67,7 +67,7 @@ final class TargetHud {
     }
     private static int tint(int rgb,double alpha){return ((int)(Math.clamp(alpha,0,1)*255)<<24)|rgb;}
     static void drawCard(GuiGraphics g,Font font,int x,int y,int w,String name,String hp,double health,int palette,double time,double alpha){
-        int accent=Config.paletteColor(palette,time*.45);
+        int accent=VisualFX.config.hudStyle.sample(palette,time*.45);
         g.fill(x-2,y-2,x+w+2,y+58,tint(accent,.08*alpha));
         g.fill(x,y,x+w,y+56,tint(0x080F19,.94*alpha));
         g.renderOutline(x,y,w,56,tint(accent,.6*alpha));
@@ -78,9 +78,9 @@ final class TargetHud {
         int start=x+10,end=x+w-10;
         g.fill(start,y+40,end,y+46,tint(0x23313D,alpha));
         int filled=(int)Math.round((end-start)*Math.clamp(health,0,1));
-        if(palette<4)g.fill(start,y+40,start+filled,y+46,tint(accent,alpha));
+        if(palette<4||palette==5)g.fill(start,y+40,start+filled,y+46,tint(accent,alpha));
         else for(int i=0;i<filled;i+=4){
-            int color=Config.paletteColor(palette,time*.45+i/(double)Math.max(1,end-start)*2);
+            int color=VisualFX.config.hudStyle.sample(palette,time*.45+i/(double)Math.max(1,end-start)*2);
             g.fill(start+i,y+40,start+Math.min(filled,i+4),y+46,tint(color,alpha));
         }
     }
@@ -89,7 +89,6 @@ final class TargetHud {
         drawCard(g,font,x+4,y+30,width-8,"Игрок", "16.0 / 20.0 HP",.8,c.hudPalette,seconds,alpha);
     }
 }
-
 
 
 

@@ -95,4 +95,3 @@ final class SoundCloudScreen extends Screen {
     @Override public void removed(){VisualFX.config.save();}
 }
 
-
