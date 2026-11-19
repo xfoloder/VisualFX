@@ -12,10 +12,10 @@ import java.util.Locale;
 
 public final class TerminalScreen extends Screen {
     private enum Setting {
-        AIM("Aim Assist", "Удерживайте назначенную клавишу. Бинд меняется в Управление → Назначение клавиш → VisualFX."),
+        AIM("Aim Assist", "Нажмите назначенную клавишу для включения или выключения. Бинд меняется в настройках управления Minecraft."),
         AIM_RANGE("Дальность", "Максимальное расстояние до точки наведения в блоках.",2,8),
         AIM_ANGLE("Угол захвата", "Максимальный угол от центра прицела до цели.",3,75),
-        AIM_SPEED("Скорость доводки", "Максимальная скорость поворота прицела в градусах в секунду.",20,180),
+        AIM_SPEED("Скорость доводки", "Регулирует скорость поворота даже рядом с целью. Меньше — мягче.",5,180),
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
         HIT_MODE("Вид удара", "Выберите один из шести разных эффектов удара."),
@@ -73,7 +73,7 @@ public final class TerminalScreen extends Screen {
             default->0;
         };}
         void set(Config c,double value){switch(this){
-            case AIM_RANGE->c.aimRange=value;case AIM_ANGLE->c.aimAngle=value;case AIM_SPEED->c.aimSpeed=value;
+            case AIM_RANGE->c.aimRange=value;case AIM_ANGLE->c.aimAngle=value;case AIM_SPEED->c.aimSpeed=Math.round(value);
             case HIT_STRENGTH->c.hitStrength=value; case SPEED->c.speed=value; case RADIUS->c.radius=value;
             case HIT_DURATION->c.hitDuration=value;
             case ECHO_LENGTH->c.echoLength=value;case ECHO_GHOSTS->c.echoGhosts=(int)Math.round(value);case ECHO_INTENSITY->c.echoIntensity=value;
@@ -260,7 +260,7 @@ public final class TerminalScreen extends Screen {
     private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
         if(h<48)return;
         switch(feature){
-            case AIM_ASSIST->fitted(g,"Удерживайте "+AimAssist.keyLabel(),x+6,y+8,0xFF00CC,w-12);
+            case AIM_ASSIST->fitted(g,"Вкл./выкл. — "+AimAssist.keyLabel(),x+6,y+8,0xFF00CC,w-12);
             case SOUND_CLOUD->{
                 text(g,"SoundCloud",x+6,y+8,0xFF7733);
                 String info=SoundCloudPlayer.INSTANCE.connected()?"Браузер подключён. Откройте плеер для управления.":"Звук через браузер. Откройте плеер и вставьте ссылку SoundCloud.";

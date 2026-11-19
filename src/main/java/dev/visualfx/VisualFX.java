@@ -38,7 +38,7 @@ public final class VisualFX implements ClientModInitializer {
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
-            held=down; TARGET.tick(client);hud.tick(client);
+            held=down; AimAssist.tick(client);TARGET.tick(client);hud.tick(client);
         });
         LevelExtractionEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());

@@ -15,18 +15,55 @@ import net.minecraft.world.phys.Vec3;
 public final class AimAssist {
     // Entity.turn expects mouse units, scaled by vanilla to 0.15 degrees per unit.
     private static final double DEGREES_PER_MOUSE_UNIT = 0.15;
-    private static KeyMapping activation;
+    private static ToggleKey activation;
     private static ClientLevel world;
     private static Player selected;
     private static double untilScan;
 
     static void register() {
         var category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("visualfx", "controls"));
-        activation = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.visualfx.aim_assist", InputConstants.KEY_LALT, category));
+        activation = new ToggleKey(category);
+        KeyMappingHelper.registerKeyMapping(activation);
     }
 
     static String keyLabel() {
         return activation.getTranslatedKeyMessage().getString();
+    }
+
+    static void tick(Minecraft client) {
+        if (client.level != world) {
+            world = client.level;
+            selected = null;
+            untilScan = 0;
+        }
+        if (activation.consumeToggle() && client.player != null && client.gui.screen() == null
+            && !client.isPaused() && client.isWindowActive()) {
+            var config = VisualFX.config;
+            config.aimAssist = !config.aimAssist;
+            config.save();
+        }
+    }
+
+    private static final class ToggleKey extends KeyMapping {
+        private boolean pending;
+
+        ToggleKey(Category category) {
+            super("key.visualfx.aim_assist", InputConstants.KEY_LALT, category);
+        }
+
+        @Override public void setDown(boolean down) {
+            if (down && !isDown()) pending = !pending;
+            super.setDown(down);
+        }
+
+        boolean consumeToggle() {
+            // Require an input event as well as a rising edge. Minecraft also restores held state on focus changes.
+            boolean clicked = consumeClick();
+            while (consumeClick()) { /* Drain queued repeats. */ }
+            boolean toggle = pending && clicked;
+            pending = false;
+            return toggle;
+        }
     }
 
     public static void frame(Minecraft client, double elapsed) {
@@ -37,7 +74,7 @@ public final class AimAssist {
             selected = null;
             untilScan = 0;
         }
-        if (config == null || activation == null || !activation.isDown() || !config.aimAssist
+        if (config == null || !config.aimAssist
             || player == null || world == null || !player.isAlive()
             || player.isSpectator() || client.getCameraEntity() != player || client.gui.screen() != null
             || client.isPaused() || !client.isWindowActive()) {
@@ -76,7 +113,8 @@ public final class AimAssist {
         double pitch = -Math.toDegrees(Math.atan2(delta.y, Math.hypot(delta.x, delta.z)));
         double yawError = Mth.wrapDegrees(yaw - player.getYRot());
         double pitchError = pitch - player.getXRot();
-        double easing = -Math.expm1(-seconds * 5);
+        // Scale the easing rate as well as the cap, so the slider affects small corrections too.
+        double easing = -Math.expm1(-seconds * config.aimSpeed / 18);
         double step = config.aimSpeed * seconds;
         double weight = Math.min(easing, step / Math.max(1e-6, Math.hypot(yawError, pitchError)));
         player.turn(yawError * weight / DEGREES_PER_MOUSE_UNIT, pitchError * weight / DEGREES_PER_MOUSE_UNIT);
