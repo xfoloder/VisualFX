@@ -24,6 +24,8 @@ public final class ColorTest {
   ColorTarget.ECHO.apply(config,6,new ColorStyle(0x113355,0xFFCC00));assert config.echoStyle.start==0x113355&&config.hudStyle.start==0x123456;
   ColorTarget.COLOR_HIT.apply(config,5,new ColorStyle(0x00F5FF,0x39FF14));
   assert config.colorHitStyle.start==0x00F5FF&&config.echoStyle.start==0x113355;
+  ColorTarget.MENU.apply(config,5,new ColorStyle(0xB026FF,0x00F5FF));
+  assert config.menuStyle.start==0xB026FF&&config.colorHitStyle.start==0x00F5FF;
   ColorStyle legacy=gson.fromJson("{}",ColorStyle.class);assert legacy.start==0x39FF14&&legacy.speed==.35;
   System.out.println("PASS: HEX validation, RGB formatting, blend endpoints, "+samples+" palette samples, gradient cycle, invalid-value normalization, JSON round trip, independent targets and draft copy");
  }

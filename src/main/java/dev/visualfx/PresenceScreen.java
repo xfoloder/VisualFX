@@ -65,10 +65,12 @@ final class PresenceScreen extends Screen {
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {}
 
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        g.fill(0, 0, width, height, 0xB0090C14);
-        g.fill(x, y, x + panelWidth, y + 160, 0xF50E161F);
-        g.outline(x, y, panelWidth, 160, 0xFF39FF75);
-        g.text(font, getTitle(), x + 10, y + 8, 0xFF39FF75, false);
+        int theme = MenuTheme.current();
+        int accent = 0xFF000000 | MenuTheme.accent(theme);
+        g.fill(0, 0, width, height, 0xB0000000 | MenuTheme.surface(0x090C14, theme, .035));
+        g.fill(x, y, x + panelWidth, y + 160, 0xF5000000 | MenuTheme.surface(0x0E161F, theme, .10));
+        g.outline(x, y, panelWidth, 160, accent);
+        g.text(font, getTitle(), x + 10, y + 8, accent, false);
         g.text(font, "Адрес ретранслятора", x + 10, y + 27, 0xFFD0DCE3, false);
         g.text(font, "Общий приватный ключ комнаты", x + 10, y + 65, 0xFFD0DCE3, false);
         String hint = message.isEmpty() ? "Друзья вводят тот же адрес и ключ." : message;

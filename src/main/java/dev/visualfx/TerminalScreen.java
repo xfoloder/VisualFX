@@ -42,7 +42,7 @@ public final class TerminalScreen extends Screen {
         EFFECT_STATUS("Effect Status", "Показывает активные эффекты, их уровни и оставшееся время."),
         EFFECT_STATUS_SCALE("Размер панели", "Масштаб окна эффектов от 50% до 200%.",.5,2),
         EFFECT_STATUS_POSITION("Положение панели", "Откройте редактор и перетащите окно эффектов мышью."),
-        WATERMARK("Watermark", "Показывает FPS и пинг. По Right Shift меню раскрывается из Watermark."),
+        WATERMARK("Watermark", "Показывает FPS, пинг и координаты XYZ. По Right Shift меню раскрывается из Watermark."),
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
@@ -64,6 +64,7 @@ public final class TerminalScreen extends Screen {
         SHARDS("Осколки", "Количество энергетических осколков: от 0 до 48.", 0, 48),
         SMOOTHING("Плавность", "Чем выше значение, тем медленнее появление и исчезновение.", .05, .7),
         OPACITY("Непрозрачность", "Непрозрачность фона меню.", .25, 1),
+        MENU_COLOR("Цвет всего меню", "Палитра фона, рамок, вкладок и элементов управления."),
         MENU_SCALE("Размер меню", "Масштаб 65–150%. Применяется после отпускания. В маленьком окне ограничивается доступным местом.",.65,1.5),
         MENU_CENTER("Положение меню", "Возвращает окно меню в центр экрана."),
         ANIMATIONS("Анимации меню", "Плавное открытие и закрытие меню."),
@@ -113,16 +114,16 @@ public final class TerminalScreen extends Screen {
         ITEM_SCROLLER("Item Scroller", new Setting[]{Setting.ITEM_SCROLLER}),
         SEASONAL("Частицы", new Setting[]{Setting.SEASON_MODE, Setting.SEASON_DENSITY}),
         PRESENCE("Связь", new Setting[]{Setting.PRESENCE_ENABLED, Setting.PRESENCE_SHARE, Setting.PRESENCE_OPEN}),
-        MENU("Меню",new Setting[]{Setting.MENU_SCALE,Setting.MENU_CENTER,Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
+        MENU("Меню",new Setting[]{Setting.MENU_COLOR,Setting.COLOR_EDIT,Setting.MENU_SCALE,Setting.MENU_CENTER,Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
         final String title; final Setting[] settings;
         Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
     }
     private enum Category {
-        COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT,Feature.COLOR_HIT}),
-        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU,Feature.ITEM_SCROLLER,Feature.PRESENCE}),
-        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.EFFECT_STATUS,Feature.DEATH_EFFECT,Feature.ITEM_PHYSICS,Feature.SEASONAL});
-        final String title; final int color; final Feature[] features;
-        Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
+        COMBAT("Combat",new Feature[]{Feature.HIT_EFFECT,Feature.COLOR_HIT}),
+        MISC("Misc",new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU,Feature.ITEM_SCROLLER,Feature.PRESENCE}),
+        VISUAL("Visual",new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.EFFECT_STATUS,Feature.DEATH_EFFECT,Feature.ITEM_PHYSICS,Feature.SEASONAL});
+        final String title;final Feature[] features;
+        Category(String title,Feature[] features){this.title=title;this.features=features;}
     }
     private static final String[] PALETTES={"Зелёный","Розовый","Голубой","Фиолетовый","Перелив","Свой цвет","Свой градиент"};
     private static final Style FONT=Style.EMPTY;
@@ -193,7 +194,9 @@ public final class TerminalScreen extends Screen {
             case HUD_COLOR -> ColorTarget.HUD;
             case ECHO_COLOR -> ColorTarget.ECHO;
             case COLOR_HIT_PALETTE -> ColorTarget.COLOR_HIT;
-            default -> ColorTarget.WATERMARK;
+            case WATERMARK_COLOR -> ColorTarget.WATERMARK;
+            case MENU_COLOR -> ColorTarget.MENU;
+            default -> null;
         };
     }
     private String value(Setting s,Config c){return switch(s){
@@ -213,6 +216,7 @@ public final class TerminalScreen extends Screen {
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
         case COLOR_EDIT->"Открыть";
+        case MENU_COLOR->PALETTES[c.menuPalette];
         case COLOR_HIT->c.colorHit?"Вкл.":"Выкл.";
         case COLOR_HIT_PALETTE->PALETTES[c.colorHitPalette];
         case MENU_SCALE->Math.round(c.menuScale*100)+"%";case MENU_CENTER->"По центру";
@@ -238,7 +242,12 @@ public final class TerminalScreen extends Screen {
         visibility = progress * progress * (3 - 2 * progress);
         if(closing&&progress==0){minecraft.gui.setScreen(null);return;}
         layout();
-        g.fill(0,0,width,height,tint(0x020409,.62));
+        int theme = MenuTheme.current();
+        int accent = MenuTheme.accent(theme);
+        int selectedSurface = MenuTheme.surface(0x141A22, theme, .23);
+        int hoverSurface = MenuTheme.surface(0x141A22, theme, .15);
+        int idleSurface = MenuTheme.surface(0x0C1119, theme, .07);
+        g.fill(0,0,width,height,tint(MenuTheme.surface(0x020409,theme,.035),.62));
         int rawMx=mx,rawMy=my;
         mx=(int)(mx/uiScale);my=(int)(my/uiScale);
         g.pose().pushMatrix();
@@ -258,53 +267,53 @@ public final class TerminalScreen extends Screen {
         } else {
             g.pose().scale((float) uiScale, (float) uiScale);
         }
-        g.fill(left-1,top-1,left+panelWidth+1,top+panelHeight+1,tint(category.color,.65));
-        g.fill(left,top,left+panelWidth,top+panelHeight,tint(0x070B10,c.menuOpacity));
-        g.fill(left,top,left+panelWidth,top+27,tint(0x101923,c.menuOpacity));
-        fitted(g,"VisualFX / "+feature.title,left+10,top+9,0x39FF14,panelWidth-90);
-        text(g,"[RSHIFT]",left+panelWidth-64,top+9,0xFF00CC);
+        g.fill(left-1,top-1,left+panelWidth+1,top+panelHeight+1,tint(accent,.65));
+        g.fill(left,top,left+panelWidth,top+panelHeight,tint(MenuTheme.surface(0x070B10,theme,.065),c.menuOpacity));
+        g.fill(left,top,left+panelWidth,top+27,tint(MenuTheme.surface(0x101923,theme,.15),c.menuOpacity));
+        fitted(g,"VisualFX / "+feature.title,left+10,top+9,accent,panelWidth-90);
+        text(g,"[RSHIFT]",left+panelWidth-64,top+9,accent);
         int tabWidth=(panelWidth-16)/3;
         for(Category tab:Category.values()){
             int x=left+8+tab.ordinal()*tabWidth;
             boolean hover=mx>=x&&mx<x+tabWidth-3&&my>=top+32&&my<top+53;
-            g.fill(x,top+32,x+tabWidth-3,top+53,tint(tab==category?0x20333E:hover?0x18242E:0x0C141C,c.menuOpacity));
-            if(tab==category)g.fill(x,top+52,x+tabWidth-3,top+54,tint(tab.color,1));
-            text(g,tab.title,x+9,top+38,tab==category?tab.color:0x91A5AC);
+            g.fill(x,top+32,x+tabWidth-3,top+53,tint(tab==category?selectedSurface:hover?hoverSurface:idleSurface,c.menuOpacity));
+            if(tab==category)g.fill(x,top+52,x+tabWidth-3,top+54,tint(accent,1));
+            text(g,tab.title,x+9,top+38,tab==category?accent:0x91A5AC);
         }
         int featureWidth=(panelWidth-16)/category.features.length;
         for(int i=0;i<category.features.length;i++){
             Feature item=category.features[i];int x=left+8+i*featureWidth;
             boolean hover=mx>=x&&mx<x+featureWidth-3&&my>=top+57&&my<top+78;
-            g.fill(x,top+57,x+featureWidth-3,top+78,tint(item==feature?0x20333E:hover?0x18242E:0x0C141C,c.menuOpacity));
-            if(item==feature)g.fill(x,top+77,x+featureWidth-3,top+79,tint(category.color,1));
+            g.fill(x,top+57,x+featureWidth-3,top+78,tint(item==feature?selectedSurface:hover?hoverSurface:idleSurface,c.menuOpacity));
+            if(item==feature)g.fill(x,top+77,x+featureWidth-3,top+79,tint(accent,1));
             String tabTitle=item==Feature.EFFECT_STATUS&&font.width(item.title)>featureWidth-16?"Эффекты":item.title;
-            fitted(g,tabTitle,x+9,top+63,item==feature?0xFFFFFF:0x91A5AC,featureWidth-16);
+            fitted(g,tabTitle,x+9,top+63,item==feature?accent:0x91A5AC,featureWidth-16);
         }
         Setting hovered=null;
         for(int i=scrollOffset;i<Math.min(feature.settings.length,scrollOffset+visibleRows);i++){
             Setting s=feature.settings[i]; int y=top+88+(i-scrollOffset)*rowHeight;
             boolean hover=mx>=left+8&&mx<left+settingsWidth-8&&my>=y-3&&my<y+rowHeight-4;
             if(hover)hovered=s;
-            g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?0x172A34:0x0C141C,c.menuOpacity));
-            if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(category.color,1));
+            g.fill(left+8,y-3,left+settingsWidth-8,y+rowHeight-4,tint(hover?hoverSurface:idleSurface,c.menuOpacity));
+            if(hover||s==dragging)g.fill(left+8,y-3,left+10,y+rowHeight-4,tint(accent,1));
             fitted(g,s.label,left+18,y,0xD0DCE3,settingsWidth/2-26);
-            if(s==Setting.COLOR||s==Setting.HUD_COLOR||s==Setting.WATERMARK_COLOR||s==Setting.ECHO_COLOR||s==Setting.COLOR_HIT_PALETTE){
-                ColorTarget target=colorTarget(s);
+            ColorTarget target=colorTarget(s);
+            if(target!=null){
                 palette(g,left+settingsWidth/2,y-1,settingsWidth/2-16,target.palette(c),now/1e9,target.style(c));
             }
-            else fitted(g,value(s,c),left+settingsWidth/2,y,s==Setting.COLOR?c.color(0):category.color,settingsWidth/2-16);
+            else fitted(g,value(s,c),left+settingsWidth/2,y,accent,settingsWidth/2-16);
             if(s.slider()){
                 int x=left+settingsWidth/2,end=left+settingsWidth-18;
                 double f=(s.value(c)-s.min)/(s.max-s.min);
-                g.fill(x,y+11,end,y+13,tint(0x25353F,1));
-                g.fill(x,y+11,x+(int)((end-x)*f),y+13,tint(category.color,1));
+                g.fill(x,y+11,end,y+13,tint(MenuTheme.surface(0x25353F,theme,.12),1));
+                g.fill(x,y+11,x+(int)((end-x)*f),y+13,tint(accent,1));
             }
         }
-        if(settingsWidth<panelWidth)drawPreview(g,c,left+settingsWidth+2,top+85,150,panelHeight-126,now/1e9);
+        if(settingsWidth<panelWidth)drawPreview(g,c,left+settingsWidth+2,top+85,150,panelHeight-126,now/1e9,accent);
         else {
             int used=Math.min(feature.settings.length,visibleRows);
             int y=top+88+used*rowHeight;
-            drawPreview(g,c,left+10,y,panelWidth-20,top+panelHeight-37-y,now/1e9);
+            drawPreview(g,c,left+10,y,panelWidth-20,top+panelHeight-37-y,now/1e9,accent);
         }
         String hint=feature==Feature.OPTIMIZATION&&!optimizationMessage.isEmpty()?optimizationMessage:hovered==null?"Перетащите верхнюю панель. Колесо мыши — прокрутка.":hovered.help;
         // Wrap the help text using the same font as the panel.
@@ -323,11 +332,11 @@ public final class TerminalScreen extends Screen {
         lastAdjustment=0;
         lastFeature=feature=selected;VisualFX.config.save();
     }
-    private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time){
+    private void drawPreview(GuiGraphicsExtractor g,Config c,int x,int y,int w,int h,double time,int accent){
         if(h<48)return;
         switch(feature){
             case SOUND_CLOUD->{
-                text(g,"SoundCloud",x+6,y+8,0xFF7733);
+                text(g,"SoundCloud",x+6,y+8,accent);
                 String info=SoundCloudPlayer.INSTANCE.connected()?"Браузер подключён. Откройте плеер для управления.":"Звук через браузер. Откройте плеер и вставьте ссылку SoundCloud.";
                 var lines=font.split(Component.literal(info),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
@@ -335,21 +344,21 @@ public final class TerminalScreen extends Screen {
             case TARGET_HUD->{if(h>=90)TargetHud.preview(g,font,x,y,w,c,time,visibility);}
             case EFFECT_STATUS->EffectStatus.previewInside(g,font,x+4,y+4,w-8,h-8,c.effectStatusScale);
             case WATERMARK->{
-                text(g,"Watermark",x+6,y+8,0x39FF14);
+                text(g,"Watermark",x+6,y+8,accent);
                 double scale=Math.min(1,Math.min((w-8)/(double)Watermark.WIDTH,(h-30)/(double)Watermark.HEIGHT));
                 Watermark.preview(g,font,x+4,y+30,scale,c.watermarkPalette,time);
             }
             case OPTIMIZATION->{
-                text(g,Optimizer.NAMES[c.optimizationPreset],x+6,y+8,0x39FF14);
+                text(g,Optimizer.NAMES[c.optimizationPreset],x+6,y+8,accent);
                 var lines=font.split(Component.literal(Optimizer.DETAILS[c.optimizationPreset]),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
             case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT,NEON_ECHO,COLOR_HIT->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT,feature==Feature.HIT_EFFECT,feature==Feature.NEON_ECHO,feature==Feature.COLOR_HIT);
-            case ITEM_PHYSICS->fitted(g, "Анимация выпавших предметов", x+6,y+8,0x39FF14,w-12);
-            case ITEM_SCROLLER->fitted(g, "Shift + колесо над стопкой", x+6,y+8,0x39FF14,w-12);
+            case ITEM_PHYSICS->fitted(g, "Анимация выпавших предметов", x+6,y+8,accent,w-12);
+            case ITEM_SCROLLER->fitted(g, "Shift + колесо над стопкой", x+6,y+8,accent,w-12);
             case SEASONAL->fitted(g, SEASONS[c.seasonParticles], x+6,y+8,c.seasonParticles==2?0xE9A13D:0xDEF6FF,w-12);
             case PRESENCE->{
-                fitted(g, Presence.status(), x+6,y+8,0x39FF75,w-12);
+                fitted(g, Presence.status(), x+6,y+8,accent,w-12);
                 var connection=minecraft.getConnection();
                 if(connection!=null) {
                     int row=y+24;
@@ -364,8 +373,8 @@ public final class TerminalScreen extends Screen {
                 }
             }
             case MENU->{
-                text(g,"Настройки меню",x+6,y+8,0x39FF14);
-                var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Размер — ползунком слева. Right Shift — закрыть меню."),w-12);
+                text(g,"Настройки меню",x+6,y+8,accent);
+                var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Масштаб и палитра задаются слева. Right Shift закрывает меню."),w-12);
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.text(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
         }
@@ -401,6 +410,7 @@ public final class TerminalScreen extends Screen {
                     case TARGET_HUD->ColorTarget.HUD;
                     case WATERMARK->ColorTarget.WATERMARK;
                     case COLOR_HIT->ColorTarget.COLOR_HIT;
+                    case MENU->ColorTarget.MENU;
                     default->ColorTarget.ESP;
                 };
                 VisualFX.config.save();minecraft.gui.setScreen(new ColorEditorScreen(this,target));return true;
@@ -442,7 +452,7 @@ public final class TerminalScreen extends Screen {
                 case WATERMARK->c.watermark=!c.watermark;
                 case EFFECT_STATUS->c.effectStatus=!c.effectStatus;
                 case ECHO->c.neonEcho=!c.neonEcho;case ECHO_PULSE->c.echoPulse=!c.echoPulse;
-                case COLOR,HUD_COLOR,WATERMARK_COLOR,ECHO_COLOR,COLOR_HIT_PALETTE->{
+                case COLOR,HUD_COLOR,WATERMARK_COLOR,ECHO_COLOR,COLOR_HIT_PALETTE,MENU_COLOR->{
                     int start=left+settingsWidth/2,swatchWidth=(settingsWidth/2-16)/7;
                     ColorTarget target=colorTarget(s);
                     int selected=x>=start?Math.clamp((int)((x-start)/Math.max(1,swatchWidth)),0,6):(target.palette(c)+1)%7;

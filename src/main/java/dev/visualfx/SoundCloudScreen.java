@@ -67,8 +67,10 @@ final class SoundCloudScreen extends Screen {
     private static String time(long ms){long s=Math.max(0,ms/1000);return (s/60)+":"+String.format(java.util.Locale.ROOT,"%02d",s%60);}
     @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){}
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0xB0020409);g.fill(left,top,left+panelWidth,top+230,0xF0070B10);g.outline(left,top,panelWidth,230,0xFF00F5FF);
-        text(g,"VisualFX / SoundCloud",left+10,top+10,0xFFFF7733,panelWidth-20);
+        int theme = MenuTheme.current();
+        int accent = 0xFF000000 | MenuTheme.accent(theme);
+        g.fill(0,0,width,height,0xB0000000 | MenuTheme.surface(0x020409,theme,.035));g.fill(left,top,left+panelWidth,top+230,0xF0000000 | MenuTheme.surface(0x070B10,theme,.10));g.outline(left,top,panelWidth,230,accent);
+        text(g,"VisualFX / SoundCloud",left+10,top+10,accent,panelWidth-20);
         var status=player.status();boolean connected=player.connected(),ready=connected&&status.ready();
         toggle.active=prev.active=next.active=stop.active=ready;
         toggle.setMessage(Component.literal(status.paused()?"Воспроизвести":"Пауза"));
@@ -76,11 +78,11 @@ final class SoundCloudScreen extends Screen {
         text(g,line,left+10,top+80,0xFF91A5AC,panelWidth-20);
         if(mx>=left+10&&mx<left+panelWidth-10&&my>=top+78&&my<top+91)g.setTooltipForNextFrame(Component.literal(line),mx,my);
         text(g,status.title().isBlank()?(connected?"Вкладка подключена — загрузите ссылку":"Браузер не подключён"):status.title(),left+10,top+95,0xFFE3EDF3,panelWidth-20);
-        text(g,status.artist().isBlank()?"Источник: SoundCloud":status.artist()+" · SoundCloud",left+10,top+108,0xFFFF7733,panelWidth-20);
+        text(g,status.artist().isBlank()?"Источник: SoundCloud":status.artist()+" · SoundCloud",left+10,top+108,accent,panelWidth-20);
         int start=left+10,end=left+panelWidth-90;
-        g.fill(start,top+127,end,top+137,0xFF20333E);
+        g.fill(start,top+127,end,top+137,0xFF000000 | MenuTheme.surface(0x20333E,theme,.22));
         double ratio=status.duration()>0?Math.clamp(status.position()/(double)status.duration(),0,1):0;
-        g.fill(start,top+127,start+(int)((end-start)*ratio),top+137,0xFF00F5FF);
+        g.fill(start,top+127,start+(int)((end-start)*ratio),top+137,accent);
         text(g,time(status.position())+" / "+time(status.duration()),end+5,top+128,0xFFA4B6C3,80);
         super.extractRenderState(g,mx,my,delta);
     }
