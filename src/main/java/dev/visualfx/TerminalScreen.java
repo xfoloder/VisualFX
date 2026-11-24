@@ -43,6 +43,9 @@ public final class TerminalScreen extends Screen {
         EFFECT_STATUS_SCALE("Размер панели", "Масштаб окна эффектов от 50% до 200%.",.5,2),
         EFFECT_STATUS_POSITION("Положение панели", "Откройте редактор и перетащите окно эффектов мышью."),
         WATERMARK("Watermark", "Показывает FPS, пинг и координаты XYZ. По Right Shift меню раскрывается из Watermark."),
+        WATERMARK_FPS("Показывать FPS", "Частота кадров в Watermark."),
+        WATERMARK_PING("Показывать пинг", "Задержка подключения к серверу в Watermark."),
+        WATERMARK_COORDINATES("Показывать координаты", "Координаты блока игрока в Watermark."),
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
@@ -104,7 +107,7 @@ public final class TerminalScreen extends Screen {
         TARGET_ESP("Target ESP",new Setting[]{Setting.TARGET,Setting.MODE,Setting.COLOR,Setting.COLOR_EDIT,Setting.SPEED,Setting.RADIUS,Setting.GLOW,Setting.SHARDS,Setting.SMOOTHING}),
         TARGET_HUD("TargetHUD",new Setting[]{Setting.HUD,Setting.HUD_COLOR,Setting.COLOR_EDIT,Setting.HUD_SCALE,Setting.HUD_POSITION}),
         EFFECT_STATUS("Effect Status",new Setting[]{Setting.EFFECT_STATUS,Setting.EFFECT_STATUS_SCALE,Setting.EFFECT_STATUS_POSITION}),
-        WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_COLOR,Setting.COLOR_EDIT,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
+        WATERMARK("Watermark",new Setting[]{Setting.WATERMARK,Setting.WATERMARK_FPS,Setting.WATERMARK_PING,Setting.WATERMARK_COORDINATES,Setting.WATERMARK_COLOR,Setting.COLOR_EDIT,Setting.WATERMARK_SCALE,Setting.WATERMARK_POSITION}),
         OPTIMIZATION("Оптимизация",new Setting[]{Setting.RUST_GEOMETRY,Setting.OPT_LIGHT,Setting.OPT_PRESET,Setting.OPT_APPLY,Setting.OPT_RESTORE}),
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
@@ -220,7 +223,10 @@ public final class TerminalScreen extends Screen {
         case COLOR_HIT->c.colorHit?"Вкл.":"Выкл.";
         case COLOR_HIT_PALETTE->PALETTES[c.colorHitPalette];
         case MENU_SCALE->Math.round(c.menuScale*100)+"%";case MENU_CENTER->"По центру";
-        case WATERMARK->c.watermark?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
+        case WATERMARK->c.watermark?"Вкл.":"Выкл.";
+        case WATERMARK_FPS->c.watermarkShowFps?"Вкл.":"Выкл.";
+        case WATERMARK_PING->c.watermarkShowPing?"Вкл.":"Выкл.";
+        case WATERMARK_COORDINATES->c.watermarkShowCoordinates?"Вкл.":"Выкл."; case WATERMARK_COLOR->PALETTES[c.watermarkPalette];
         case EFFECT_STATUS->c.effectStatus?"Вкл.":"Выкл.";
         case HUD_POSITION,WATERMARK_POSITION,EFFECT_STATUS_POSITION->"Переместить";
         case HUD_SCALE,WATERMARK_SCALE,EFFECT_STATUS_SCALE->Math.round(s.value(c)*100)+"%";
@@ -345,7 +351,7 @@ public final class TerminalScreen extends Screen {
             case EFFECT_STATUS->EffectStatus.previewInside(g,font,x+4,y+4,w-8,h-8,c.effectStatusScale);
             case WATERMARK->{
                 text(g,"Watermark",x+6,y+8,accent);
-                double scale=Math.min(1,Math.min((w-8)/(double)Watermark.WIDTH,(h-30)/(double)Watermark.HEIGHT));
+                double scale=Math.min(1,Math.min((w-8)/(double)Watermark.WIDTH,(h-30)/(double)Watermark.height(c)));
                 Watermark.preview(g,font,x+4,y+30,scale,c.watermarkPalette,time);
             }
             case OPTIMIZATION->{
@@ -450,6 +456,9 @@ public final class TerminalScreen extends Screen {
                 case OPT_RESTORE->optimizationMessage=Optimizer.restore();
                                 case HUD->c.targetHud=!c.targetHud;
                 case WATERMARK->c.watermark=!c.watermark;
+                case WATERMARK_FPS->c.watermarkShowFps=!c.watermarkShowFps;
+                case WATERMARK_PING->c.watermarkShowPing=!c.watermarkShowPing;
+                case WATERMARK_COORDINATES->c.watermarkShowCoordinates=!c.watermarkShowCoordinates;
                 case EFFECT_STATUS->c.effectStatus=!c.effectStatus;
                 case ECHO->c.neonEcho=!c.neonEcho;case ECHO_PULSE->c.echoPulse=!c.echoPulse;
                 case COLOR,HUD_COLOR,WATERMARK_COLOR,ECHO_COLOR,COLOR_HIT_PALETTE,MENU_COLOR->{

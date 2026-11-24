@@ -34,6 +34,9 @@ public final class Config {
     public double hudScale=1,hudX=.65,hudY=.6;
     public double hudOffsetX=0,hudOffsetY=-12;
     public boolean watermark=true;
+    public boolean watermarkShowFps = true;
+    public boolean watermarkShowPing = true;
+    public boolean watermarkShowCoordinates = true;
     public boolean effectStatus=true;
     public double effectStatusScale=1,effectStatusX=1,effectStatusY=.22;
     public int watermarkPalette=0;
