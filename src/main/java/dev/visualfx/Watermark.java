@@ -12,26 +12,34 @@ final class Watermark {
         Minecraft c=Minecraft.getInstance();Config cfg=VisualFX.config;
         if(!cfg.watermark||c.level==null||c.gui.screen()!=null)return;
         placement.update(g.guiWidth(),g.guiHeight(),true);
+        drawLive(g,c,placement,1);
+    }
+    static void drawLive(GuiGraphicsExtractor g, Minecraft c, HudPlacement position, double opacity) {
+        if (opacity < .04) return;
         var connection=c.getConnection();
         var playerInfo=c.hasSingleplayerServer()||connection==null||c.player==null
             ? null : connection.getPlayerInfo(c.player.getUUID());
         int latency=playerInfo==null?-1:playerInfo.getLatency();
-        draw(g,c.font,placement.x,placement.y,placement.scale,cfg.watermarkPalette,System.nanoTime()/1e9,c.getFps(),latency);
+        draw(g,c.font,position.x,position.y,position.scale,VisualFX.config.watermarkPalette,System.nanoTime()/1e9,c.getFps(),latency,opacity);
     }
     static void preview(GuiGraphicsExtractor g,Font font,double x,double y,double scale,int palette,double time){
-        draw(g,font,x,y,scale,palette,time,144,38);
+        draw(g,font,x,y,scale,palette,time,144,38,1);
     }
-    private static void draw(GuiGraphicsExtractor g,Font font,double x,double y,double scale,int palette,double time,int fps,int latency){
-        int accent=0xFF000000|VisualFX.config.watermarkStyle.sample(palette,time*.45);
+    private static void draw(GuiGraphicsExtractor g,Font font,double x,double y,double scale,int palette,double time,int fps,int latency,double opacity){
+        int accent=fade(0xFF000000|VisualFX.config.watermarkStyle.sample(palette,time*.45),opacity);
+        int text=fade(0xFFD0DCE3,opacity);
         g.pose().pushMatrix();g.pose().translate((float)x,(float)y).scale((float)scale,(float)scale);
-        g.fill(0,0,WIDTH,HEIGHT,0xEE080F19);g.outline(0,0,WIDTH,HEIGHT,accent);
+        g.fill(0,0,WIDTH,HEIGHT,fade(0xEE080F19,opacity));g.outline(0,0,WIDTH,HEIGHT,accent);
         g.fill(0,0,3,HEIGHT,accent);
         g.text(font,"VisualFX",10,7,accent,false);
-        g.text(font,"| Minecraft 26.3",65,7,0xFFD0DCE3,false);
-        g.fill(10,18,WIDTH-10,19,0xFF233746);
-        g.text(font,"FPS " + Math.max(0,fps),10,24,0xFFD0DCE3,false);
-        g.text(font,"Пинг " + (latency<0?"—":latency + " мс"),88,24,0xFFD0DCE3,false);
+        g.text(font,"| Minecraft 26.3",65,7,text,false);
+        g.fill(10,18,WIDTH-10,19,fade(0xFF233746,opacity));
+        g.text(font,"FPS " + Math.max(0,fps),10,24,text,false);
+        g.text(font,"Пинг " + (latency<0?"—":latency + " мс"),88,24,text,false);
         g.pose().popMatrix();
+    }
+    private static int fade(int color,double opacity) {
+        return ((int) ((color >>> 24) * opacity) << 24) | (color & 0xFFFFFF);
     }
 }
 
