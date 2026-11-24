@@ -22,6 +22,7 @@ final class ColorEditorScreen extends Screen {
     private Button startButton,endButton,solidButton,gradientButton;
     private AbstractSliderButton speedSlider;
     private int left,top,panelWidth;
+    private int frameAccent;
     private String message="HEX: #RRGGBB. Применить — сохранить; Escape — отменить.";
     ColorEditorScreen(Screen parent,ColorTarget target){
         super(Component.literal("Редактор цветов"));this.parent=parent;this.target=target;
@@ -110,13 +111,17 @@ final class ColorEditorScreen extends Screen {
             int knob = x + 4 + (int) Math.round(value * length);
             g.fill(knob - 3, y + 1, knob + 3, y + 17, 0xFF0A1016);
             g.renderOutline(knob - 3, y + 1, 6, 16, 0xFFFFFFFF);
-            if (isFocused() || isHovered()) g.renderOutline(x, y, width, 18, 0xFF00F5FF);
+            if (isFocused() || isHovered()) g.renderOutline(x, y, width, 18, frameAccent);
         }
     }
     @Override public void renderBackground(GuiGraphics g,int x,int y,float delta){}
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0xBA020409);g.fill(left,top,left+panelWidth,top+228,0xF8070B10);g.renderOutline(left,top,panelWidth,228,0xFF00F5FF);
-        g.drawString(font,"Редактор цветов / "+target.title,left+10,top+9,0xFFE3EDF3,false);
+        int theme = target == ColorTarget.MENU ? draft.sample(mode, System.nanoTime() / 1e9 * .45) : MenuTheme.current();
+        frameAccent = 0xFF000000 | MenuTheme.accent(theme);
+        g.fill(0,0,width,height,0xBA000000 | MenuTheme.surface(0x020409,theme,.035));
+        g.fill(left,top,left+panelWidth,top+228,0xF8000000 | MenuTheme.surface(0x070B10,theme,.10));
+        g.renderOutline(left,top,panelWidth,228,frameAccent);
+        g.drawString(font,"Редактор цветов / "+target.title,left+10,top+9,frameAccent,false);
         int x=left+10,y=top+26,w=panelWidth-20;
         if(mode==6){for(int i=0;i<w;i+=3)g.fill(x+i,y,x+Math.min(w,i+3),y+30,0xFF000000|ColorStyle.mix(draft.start,draft.end,i/(double)Math.max(1,w-3)));}
         else g.fill(x,y,x+w,y+30,0xFF000000|draft.start);

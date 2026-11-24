@@ -25,14 +25,16 @@ final class HudEditorScreen extends Screen {
     @Override public void onClose(){dragging=false;VisualFX.config.save();minecraft.setScreen(parent);}
     @Override public void removed(){VisualFX.config.save();}
     @Override public void render(GuiGraphics g,int mx,int my,float delta){
-        g.fill(0,0,width,height,0x77020910);
+        int theme = MenuTheme.current();
+        int accent = 0xFF000000 | MenuTheme.accent(theme);
+        g.fill(0,0,width,height,0x77000000 | MenuTheme.surface(0x020910,theme,.06));
         g.vLine(width/2,0,height,0x30486A7C);g.hLine(0,width,height/2,0x30486A7C);
         updatePlacement();
         if(panel==Panel.TARGET_HUD){
             int ax=width/2,ay=(int)(height*.55);
             g.renderOutline(ax-7,ay+6,14,14,0xFF728D9A);
             g.fill(ax-9,ay+22,ax+9,ay+50,0x88263C4B);
-            g.hLine(ax-5,ax+5,ay,0xFF00F5FF);g.vLine(ax,ay-5,ay+5,0xFF00F5FF);
+            g.hLine(ax-5,ax+5,ay,accent);g.vLine(ax,ay-5,ay+5,accent);
         }
         if(panel==Panel.WATERMARK)Watermark.preview(g,font,placement.x,placement.y,placement.scale,VisualFX.config.watermarkPalette,System.nanoTime()/1e9);
         else if(panel==Panel.EFFECT_STATUS)EffectStatus.preview(g,font,placement.x,placement.y,placement.scale);
@@ -43,7 +45,7 @@ final class HudEditorScreen extends Screen {
         }
         if(placement.contains(mx,my)||dragging)g.renderOutline((int)placement.x-2,(int)placement.y-2,(int)Math.ceil(placement.w)+4,(int)Math.ceil(placement.h)+4,0xFFFFFFFF);
         int bar=toolbarY();
-        g.fill(4,bar,width-4,bar+33,0xED080F19);
+        g.fill(4,bar,width-4,bar+33,0xED000000 | MenuTheme.surface(0x080F19,theme,.10));
         String hint=switch(panel){
             case WATERMARK -> "Watermark: перетащите мышью. Колесо — размер.";
             case EFFECT_STATUS -> "Effect Status: перетащите мышью. Колесо — размер.";
@@ -51,8 +53,8 @@ final class HudEditorScreen extends Screen {
         };
         var lines=font.split(Component.literal(hint),width-88);
         for(int i=0;i<Math.min(2,lines.size());i++)g.drawString(font,lines.get(i),10,bar+6+i*10,0xFFE3EDF3,false);
-        g.fill(width-76,bar+6,width-10,bar+26,0xFF20333E);
-        g.drawString(font,"Готово",width-65,bar+12,0xFF39FF14,false);
+        g.fill(width-76,bar+6,width-10,bar+26,0xFF000000 | MenuTheme.surface(0x20333E,theme,.22));
+        g.drawString(font,"Готово",width-65,bar+12,accent,false);
     }
     @Override public boolean mouseClicked(MouseButtonEvent e,boolean doubled){
         if(e.button()!=InputConstants.MOUSE_BUTTON_LEFT)return false;

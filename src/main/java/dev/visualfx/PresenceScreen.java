@@ -68,10 +68,12 @@ final class PresenceScreen extends Screen {
     @Override public void renderBackground(GuiGraphics g, int mx, int my, float delta) {}
 
     @Override public void render(GuiGraphics g, int mx, int my, float delta) {
-        g.fill(0, 0, width, height, 0xB0090C14);
-        g.fill(x, y, x + panelWidth, y + 160, 0xF50E161F);
-        g.renderOutline(x, y, panelWidth, 160, 0xFF39FF75);
-        g.drawString(font, getTitle(), x + 10, y + 8, 0xFF39FF75, false);
+        int theme = MenuTheme.current();
+        int accent = 0xFF000000 | MenuTheme.accent(theme);
+        g.fill(0, 0, width, height, 0xB0000000 | MenuTheme.surface(0x090C14, theme, .035));
+        g.fill(x, y, x + panelWidth, y + 160, 0xF5000000 | MenuTheme.surface(0x0E161F, theme, .10));
+        g.renderOutline(x, y, panelWidth, 160, accent);
+        g.drawString(font, getTitle(), x + 10, y + 8, accent, false);
         g.drawString(font, "Адрес ретранслятора", x + 10, y + 27, 0xFFD0DCE3, false);
         g.drawString(font, "Общий приватный ключ комнаты", x + 10, y + 65, 0xFFD0DCE3, false);
         String hint = message.isEmpty() ? "После входа на сервер связь подключится сама." : message;
