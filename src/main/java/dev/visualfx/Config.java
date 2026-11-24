@@ -15,6 +15,9 @@ public final class Config {
     public boolean presenceEnabled, presenceShareMenu = true;
     public boolean cynthiaServerInitialized;
     public String presenceUrl = "http://127.0.0.1:27640", presenceKey = "";
+    public boolean colorHit = true;
+    public int colorHitPalette = 5;
+    public ColorStyle colorHitStyle = new ColorStyle(0xFF00CC, 0x00F5FF);
     public int hitMode=0;
     public double hitDuration=.6;
     public int mode = 0, palette = 0, shards = 18;
@@ -54,6 +57,9 @@ public final class Config {
         if (!Presence.validUrl(presenceUrl)) presenceUrl = "http://127.0.0.1:27640";
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,7);
         hitMode=Math.floorMod(hitMode,HitEffects.NAMES.length);hitDuration=limit(hitDuration,.25,1.2);
+        colorHitPalette = Math.floorMod(colorHitPalette, 7);
+        if (colorHitStyle == null) colorHitStyle = new ColorStyle(0xFF00CC, 0x00F5FF);
+        colorHitStyle.clamp();
         shards = Math.clamp(shards,0,48);
         speed = limit(speed,.1,3); radius = limit(radius,.4,1.6);
         glow = limit(glow,0,1); smoothing = limit(smoothing,.05,.7);

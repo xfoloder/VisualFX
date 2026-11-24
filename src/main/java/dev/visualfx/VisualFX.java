@@ -47,7 +47,7 @@ public final class VisualFX implements ClientModInitializer {
                 else if(client.screen instanceof SoundCloudScreen music) music.onClose();
                 else if(client.screen instanceof HudEditorScreen e) e.onClose();
                 else if(client.screen instanceof PresenceScreen link) link.onClose();
-                else if(client.screen instanceof TerminalScreen s) s.onClose();
+                else if(client.screen instanceof TerminalScreen s) s.toggleFromKey();
                 else if(client.screen==null) client.setScreen(new TerminalScreen());
             }
             held=down; TARGET.tick(client);hud.tick(client);effectStatus.tick(client);

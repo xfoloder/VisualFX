@@ -8,12 +8,12 @@ final class EffectPreview extends Geometry {
     private GuiGraphics gui;
     private double cx,cy,scale,fade;
 
-    void draw(GuiGraphics gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview,boolean hitPreview,boolean echoPreview){
+    void draw(GuiGraphics gui,Font font,int x,int y,int width,int height,Config config,double seconds,double fade,boolean deathPreview,boolean hitPreview,boolean echoPreview,boolean colorHitPreview){
         if(height<48)return;
         this.gui=gui;this.c=config;this.t=seconds;this.alpha=1;this.hit=0;this.fade=fade;
         gui.fill(x,y,x+width,y+height,argb(0x09131D,.85));
         gui.renderOutline(x,y,width,height,argb(config.color(seconds*.45),.3));
-        gui.drawString(font,deathPreview?"Смерть: "+DeathEffectSystem.NAMES[config.deathMode]:hitPreview?"Эффект удара":"Предпросмотр",x+8,y+7,argb(0xC5D8E3,1),false);
+        gui.drawString(font,colorHitPreview?"Цвет попадания":deathPreview?"Смерть: "+DeathEffectSystem.NAMES[config.deathMode]:hitPreview?"Эффект удара":"Предпросмотр",x+8,y+7,argb(0xC5D8E3,1),false);
         gui.enableScissor(x+1,y+21,x+width-1,y+height-1);
         cx=x+width*.5;scale=Math.min((width-18)/4.2,(height-32)/3.3);cy=y+22+(height-32)*.5+scale*.6;
         if(deathPreview){scale=Math.min((width-18)/4.2,(height-32)/4.1);cy=y+height-12;}
@@ -23,7 +23,10 @@ final class EffectPreview extends Geometry {
         for(int i=-2;i<=2;i++){
             plainLine(cx-scale*1.6,cy+scale*.17+i*3,cx+scale*1.6,cy+scale*.17+i*3,1,0x213341,.5);
         }
-        int body=argb(0x263C4B,.95),edge=argb(0x728D9A,.8);
+        double colorHitAge = seconds % 1.5;
+        double flash = colorHitPreview && config.colorHit ? Math.max(0, 1 - colorHitAge * 2) : 0;
+        int hitColor = config.colorHitStyle.sample(config.colorHitPalette, colorHitAge);
+        int body=argb(ColorStyle.mix(0x263C4B, hitColor, flash),.95),edge=argb(0x728D9A,.8);
         int head=(int)(scale*.28),bx=(int)cx,feet=(int)cy;
         gui.fill(bx-head,feet-(int)(scale*1.8),bx+head,feet-(int)(scale*1.25),body);
         gui.renderOutline(bx-head,feet-(int)(scale*1.8),head*2,(int)(scale*.55),edge);
@@ -40,7 +43,7 @@ final class EffectPreview extends Geometry {
             if(age<config.hitDuration)HitEffects.draw(this,1.8,1-age/config.hitDuration,config.hitMode);
         }else if(echoPreview){
             EchoVisual.draw(this,EchoHistory.demo(seconds,config.echoLength),config.optimization?Math.min(3,config.echoGhosts):config.echoGhosts,config.echoIntensity,config.echoPulse?1-(seconds%1.2)/1.2:0);
-        }else Effects.MODES[config.mode].draw(this,1.8);
+        }else if(!colorHitPreview) Effects.MODES[config.mode].draw(this,1.8);
         gui.disableScissor();
         this.gui=null;this.c=null;
     }

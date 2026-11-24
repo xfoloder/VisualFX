@@ -4,6 +4,9 @@
   "package": "dev.visualfx.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ColorHitDamageMixin",
+    "ColorHitRenderStateMixin",
+    "ColorHitRendererMixin",
     "GameRendererAccessor",
     "ItemPoseMixin",
     "ItemRendererMixin",

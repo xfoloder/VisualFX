@@ -24,7 +24,7 @@ public final class Presence {
     public enum Activity {
         IN_GAME(""), NEON_ECHO("Neon Echo"), TARGET_ESP("Target ESP"), TARGET_HUD("Target HUD"),
         EFFECT_STATUS("Effect Status"), WATERMARK("Watermark"), OPTIMIZATION("Оптимизация"),
-        SOUND_CLOUD("SoundCloud"), DEATH_EFFECT("Death Effect"), HIT_EFFECT("Hit Effect"), MENU("Меню"),
+        SOUND_CLOUD("SoundCloud"), DEATH_EFFECT("Death Effect"), HIT_EFFECT("Hit Effect"), COLOR_HIT("Color Hit"), MENU("Меню"),
         ITEM_PHYSICS("Item Physics"), ITEM_SCROLLER("Item Scroller"), SEASONAL("Частицы"),
         PRESENCE("Связь клиентов"), ADJUSTING("Меняет параметр"), COLORS("Редактор цветов"),
         HUD_EDITOR("Редактор HUD");
