@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.visualfx.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ItemPoseMixin",
+    "ItemRendererMixin",
+    "ItemScrollerMixin",
+    "NameTagMixin",
+    "TabOverlayMixin"
+  ],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "visualfx",
-  "version": "1.19.0+26.3",
+  "version": "1.19.3+26.3",
   "name": "VisualFX",
   "description": "Neon target effects and a cyber terminal control panel.",
   "environment": "client",
@@ -10,6 +10,7 @@
       "dev.visualfx.VisualFX"
     ]
   },
+  "mixins": ["visualfx.mixins.json"],
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": "26.3",

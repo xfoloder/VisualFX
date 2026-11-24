@@ -20,8 +20,11 @@ public final class VisualFX implements ClientModInitializer {
     private final TargetHud hud=new TargetHud();
     private final Watermark watermark=new Watermark();
     private final EffectStatus effectStatus=new EffectStatus();
+    private final SeasonalParticles seasons = new SeasonalParticles();
+    private final Presence presence = new Presence();
     @Override public void onInitializeClient() {
         config=Config.load();
+        FeaturedServer.register();
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
@@ -38,16 +41,22 @@ public final class VisualFX implements ClientModInitializer {
                 if(client.gui.screen() instanceof ColorEditorScreen color) color.onClose();
                 else if(client.gui.screen() instanceof SoundCloudScreen music) music.onClose();
                 else if(client.gui.screen() instanceof HudEditorScreen e) e.onClose();
+                else if(client.gui.screen() instanceof PresenceScreen link) link.onClose();
                 else if(client.gui.screen() instanceof TerminalScreen s) s.onClose();
                 else if(client.gui.screen()==null) client.gui.setScreen(new TerminalScreen());
             }
             held=down; TARGET.tick(client);hud.tick(client);effectStatus.tick(client);
+            seasons.tick(client);
+            presence.tick(client);
         });
         LevelExtractionEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());
             hud.project(context.levelState().cameraRenderState);
         });
-        LevelRenderEvents.COLLECT_SUBMITS.register(context -> TARGET.render(context));
+        LevelRenderEvents.COLLECT_SUBMITS.register(context -> {
+            TARGET.render(context);
+            seasons.render(context, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        });
         AttackEntityCallback.EVENT.register((player,world,hand,entity,hit) -> {
             if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player targetPlayer && (config.hitEffect||config.neonEcho)) TARGET.hit(targetPlayer);
             return InteractionResult.PASS;

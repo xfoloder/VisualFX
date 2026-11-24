@@ -2,7 +2,7 @@
   <img src="docs/visualfx-banner.svg" width="100%" alt="VisualFX — неоновые орбиты на фоне киберпанк-терминала">
   <h1>VisualFX</h1>
   <p>Неоновые эффекты вокруг игрока под прицелом и настраиваемый HUD для Minecraft Java Edition.</p>
-  <p><a href="https://github.com/xfoloder/VisualFX/releases/download/v1.19.0-mc26.3/visualfx-1.19.0-mc26.3.jar"><strong>Скачать JAR для Minecraft 26.3</strong></a> · <a href="https://github.com/xfoloder/VisualFX/releases/download/v1.19.0-mc1.21.11/visualfx-1.19.0-mc1.21.11.jar">JAR для 1.21.11</a> · <a href="https://github.com/xfoloder/VisualFX/releases">Все релизы</a></p>
+  <p><a href="https://github.com/xfoloder/VisualFX/releases/download/v1.19.3-mc26.3/visualfx-1.19.3-mc26.3.jar"><strong>Скачать JAR для Minecraft 26.3</strong></a> · <a href="https://github.com/xfoloder/VisualFX/releases/download/v1.19.3-mc1.21.11/visualfx-1.19.3-mc1.21.11.jar">JAR для 1.21.11</a> · <a href="https://github.com/xfoloder/VisualFX/releases">Все релизы</a></p>
 </div>
 
 ## Возможности
@@ -17,10 +17,10 @@
 
 ## Установка
 
-| Minecraft | Скачать VisualFX 1.19.0 | Java | Fabric Loader |
+| Minecraft | Скачать VisualFX 1.19.3 | Java | Fabric Loader |
 | --- | --- | --- | --- |
-| **26.3** | [Установочный JAR](https://github.com/xfoloder/VisualFX/releases/download/v1.19.0-mc26.3/visualfx-1.19.0-mc26.3.jar) | 25 | 0.20.1 или новее |
-| **1.21.11** | [Установочный JAR](https://github.com/xfoloder/VisualFX/releases/download/v1.19.0-mc1.21.11/visualfx-1.19.0-mc1.21.11.jar) | 21 | 0.18.4 или новее |
+| **26.3** | [Установочный JAR](https://github.com/xfoloder/VisualFX/releases/download/v1.19.3-mc26.3/visualfx-1.19.3-mc26.3.jar) | 25 | 0.20.1 или новее |
+| **1.21.11** | [Установочный JAR](https://github.com/xfoloder/VisualFX/releases/download/v1.19.3-mc1.21.11/visualfx-1.19.3-mc1.21.11.jar) | 21 | 0.18.4 или новее |
 
 1. Создай профиль Minecraft с [Fabric Loader](https://fabricmc.net/use/installer/).
 2. Положи JAR VisualFX и [Fabric API](https://modrinth.com/mod/fabric-api/versions) для этой же версии Minecraft в папку `mods` профиля. При обновлении убери оттуда старый JAR VisualFX.
