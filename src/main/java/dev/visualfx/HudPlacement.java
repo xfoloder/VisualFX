@@ -5,7 +5,7 @@ final class HudPlacement {
     double x,y,scale,w,h,travelX,travelY;
     void update(int width,int height,boolean watermark){
         Config c=VisualFX.config;
-        double baseW=watermark?Watermark.WIDTH:180,baseH=watermark?Watermark.HEIGHT:56;
+        double baseW=watermark?Watermark.WIDTH:180,baseH=watermark?Watermark.height(c):56;
         updateScreen(width,height,baseW,baseH,watermark?c.watermarkScale:c.hudScale,
             watermark?c.watermarkX:c.hudX,watermark?c.watermarkY:c.hudY);
         if(!watermark)follow(width*.5,height*.55,width,height);
