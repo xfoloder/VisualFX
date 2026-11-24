@@ -9,6 +9,12 @@ public final class Config {
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("visualfx.json");
     public boolean enabled = true, hitEffect = true;
+    public boolean itemPhysics, itemScroller;
+    public int seasonParticles;
+    public double seasonDensity = 3;
+    public boolean presenceEnabled, presenceShareMenu = true;
+    public boolean cynthiaServerInitialized;
+    public String presenceUrl = "http://127.0.0.1:27640", presenceKey = "";
     public int hitMode=0;
     public double hitDuration=.6;
     public int mode = 0, palette = 0, shards = 18;
@@ -42,6 +48,10 @@ public final class Config {
     public ColorStyle echoStyle=new ColorStyle(0x39FF14,0x00F5FF);
     public static final int[] COLORS = ColorStyle.PRESETS;
     public void clamp() {
+        seasonParticles = Math.clamp(seasonParticles, 0, 2);
+        seasonDensity = limit(seasonDensity, 1, 5);
+        if (!Presence.validKey(presenceKey)) presenceKey = "";
+        if (!Presence.validUrl(presenceUrl)) presenceUrl = "http://127.0.0.1:27640";
         mode = Math.floorMod(mode,Effects.MODES.length); palette = Math.floorMod(palette,7);
         hitMode=Math.floorMod(hitMode,HitEffects.NAMES.length);hitDuration=limit(hitDuration,.25,1.2);
         shards = Math.clamp(shards,0,48);

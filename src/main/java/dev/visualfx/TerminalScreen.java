@@ -11,7 +11,16 @@ import net.minecraft.resources.Identifier;
 import java.util.Locale;
 
 public final class TerminalScreen extends Screen {
+    private static final String[] SEASONS = {"Выключены", "Снежинки", "Осенние листья"};
+
     private enum Setting {
+        ITEM_PHYSICS("Физика предметов", "Предметы кувыркаются в воздухе и остаются лежать на земле."),
+        ITEM_SCROLLER("Перенос колесом", "Удерживайте Shift и прокрутите над стопкой, чтобы быстро перенести её."),
+        SEASON_MODE("Вид частиц", "Нажмите, чтобы выбрать снежинки, осенние листья или выключить частицы."),
+        SEASON_DENSITY("Количество", "Плотность сезонных частиц под открытым небом.", 1, 5),
+        PRESENCE_ENABLED("Автоподключение", "Подключает сохранённую комнату при входе на сервер Minecraft."),
+        PRESENCE_SHARE("Показывать меню", "Передаёт вкладку и факт изменения настроек."),
+        PRESENCE_OPEN("Настроить комнату", "Введите общий адрес ретранслятора и приватный ключ комнаты."),
         TARGET("Подсветка цели", "Выделяет только игрока, на которого направлен прицел."),
         HIT("Эффект удара", "Вспышка и ударная волна при вашей атаке."),
         HIT_MODE("Вид удара", "Выберите один из шести разных эффектов удара."),
@@ -35,8 +44,8 @@ public final class TerminalScreen extends Screen {
         WATERMARK_COLOR("Палитра Watermark", "Выберите цвет логотипа и рамки."),
         WATERMARK_SCALE("Размер Watermark", "Масштаб логотипа от 50% до 200%.",.5,2),
         WATERMARK_POSITION("Положение логотипа", "Откройте редактор и перетащите Watermark мышью."),
-        OPT_LIGHT("Лёгкие эффекты", "Уменьшает детализацию и число осколков VisualFX. Выключение возвращает полное качество."),
         RUST_GEOMETRY("Расчёт геометрии", "Переключает Java и Rust для сравнения FPS при одинаковых эффектах. Rust доступен на Windows x64."),
+        OPT_LIGHT("Лёгкие эффекты", "Уменьшает детализацию и число осколков VisualFX. Выключение возвращает полное качество."),
         OPT_PRESET("Пресет", "Выберите баланс качества, больше FPS или минимум нагрузки. Настройки Minecraft меняются кнопкой ниже."),
         OPT_APPLY("Применить к игре", "Снижает дальность, облака и частицы. Исходные значения сохраняются для восстановления."),
         OPT_RESTORE("Вернуть настройки", "Восстанавливает значения Minecraft до первого применения пресета и отключает лёгкие эффекты."),
@@ -68,6 +77,7 @@ public final class TerminalScreen extends Screen {
             case HUD_SCALE->c.hudScale; case WATERMARK_SCALE->c.watermarkScale;
             case EFFECT_STATUS_SCALE->c.effectStatusScale;
             case MUSIC_VOLUME->c.musicVolume;
+            case SEASON_DENSITY->c.seasonDensity;
             case MENU_SCALE->c.menuScale;
             case GLOW->c.glow; case SHARDS->c.shards; case SMOOTHING->c.smoothing; case OPACITY->c.menuOpacity;
             default->0;
@@ -80,6 +90,7 @@ public final class TerminalScreen extends Screen {
             case EFFECT_STATUS_SCALE->c.effectStatusScale=value;
             case MUSIC_VOLUME->{c.musicVolume=(int)Math.round(value);SoundCloudPlayer.INSTANCE.command("volume","",c.musicVolume);}
             case MENU_SCALE->c.menuScale=value;
+            case SEASON_DENSITY->c.seasonDensity=Math.round(value);
             case GLOW->c.glow=value; case SHARDS->c.shards=(int)Math.round(value);
             case SMOOTHING->c.smoothing=value; case OPACITY->c.menuOpacity=value;
             default->{}
@@ -95,14 +106,18 @@ public final class TerminalScreen extends Screen {
         SOUND_CLOUD("SoundCloud",new Setting[]{Setting.MUSIC_OPEN,Setting.MUSIC_VOLUME,Setting.MUSIC_DISCONNECT}),
         DEATH_EFFECT("Death Effect",new Setting[]{Setting.DEATH,Setting.DEATH_MODE}),
         HIT_EFFECT("Hit Effect",new Setting[]{Setting.HIT,Setting.HIT_MODE,Setting.HIT_STRENGTH,Setting.HIT_DURATION}),
+        ITEM_PHYSICS("Item Physics", new Setting[]{Setting.ITEM_PHYSICS}),
+        ITEM_SCROLLER("Item Scroller", new Setting[]{Setting.ITEM_SCROLLER}),
+        SEASONAL("Частицы", new Setting[]{Setting.SEASON_MODE, Setting.SEASON_DENSITY}),
+        PRESENCE("Связь", new Setting[]{Setting.PRESENCE_ENABLED, Setting.PRESENCE_SHARE, Setting.PRESENCE_OPEN}),
         MENU("Меню",new Setting[]{Setting.MENU_SCALE,Setting.MENU_CENTER,Setting.OPACITY,Setting.ANIMATIONS,Setting.RESET});
         final String title; final Setting[] settings;
         Feature(String title,Setting[] settings){this.title=title;this.settings=settings;}
     }
     private enum Category {
         COMBAT("Combat",0xFF00CC,new Feature[]{Feature.HIT_EFFECT}),
-        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU}),
-        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.EFFECT_STATUS,Feature.DEATH_EFFECT});
+        MISC("Misc",0x39FF14,new Feature[]{Feature.WATERMARK,Feature.OPTIMIZATION,Feature.SOUND_CLOUD,Feature.MENU,Feature.ITEM_SCROLLER,Feature.PRESENCE}),
+        VISUAL("Visual",0x00F5FF,new Feature[]{Feature.NEON_ECHO,Feature.TARGET_ESP,Feature.TARGET_HUD,Feature.EFFECT_STATUS,Feature.DEATH_EFFECT,Feature.ITEM_PHYSICS,Feature.SEASONAL});
         final String title; final int color; final Feature[] features;
         Category(String title,int color,Feature[] features){this.title=title;this.color=color;this.features=features;}
     }
@@ -113,7 +128,7 @@ public final class TerminalScreen extends Screen {
     private Category category=lastCategory;
     private Feature feature=lastFeature;
     private Setting dragging;
-    private long previous=System.nanoTime(),resetDeadline;
+    private long previous=System.nanoTime(),resetDeadline, lastAdjustment;
     private double visibility;
     private boolean closing;
     private boolean draggingWindow;
@@ -125,6 +140,12 @@ public final class TerminalScreen extends Screen {
     private String optimizationMessage="";
     public TerminalScreen(){super(Component.literal("VisualFX terminal"));}
     @Override public boolean isPauseScreen(){return false;}
+
+    Presence.Activity presenceActivity() {
+        if (closing) return Presence.Activity.IN_GAME;
+        if (dragging != null || System.nanoTime() < lastAdjustment) return Presence.Activity.ADJUSTING;
+        return Presence.Activity.valueOf(feature.name());
+    }
     @Override public void onClose(){dragging=null;draggingWindow=false;VisualFX.config.save();closing=true;}
     @Override public void removed(){VisualFX.config.save();}
     @Override public void renderBackground(GuiGraphics g,int x,int y,float delta){}
@@ -159,11 +180,18 @@ public final class TerminalScreen extends Screen {
     }
     private String value(Setting s,Config c){return switch(s){
         case HUD->c.targetHud?"Вкл.":"Выкл."; case HUD_COLOR->PALETTES[c.hudPalette];
+        case ITEM_PHYSICS->c.itemPhysics?"Вкл.":"Выкл.";
+        case ITEM_SCROLLER->c.itemScroller?"Вкл.":"Выкл.";
+        case SEASON_MODE->SEASONS[c.seasonParticles];
+        case SEASON_DENSITY->Long.toString(Math.round(c.seasonDensity));
+        case PRESENCE_ENABLED->c.presenceEnabled?"Вкл.":"Выкл.";
+        case PRESENCE_SHARE->c.presenceShareMenu?"Вкл.":"Выкл.";
+        case PRESENCE_OPEN->"Открыть";
         case ECHO->c.neonEcho?"Вкл.":"Выкл.";case ECHO_PULSE->c.echoPulse?"Вкл.":"Выкл.";
         case ECHO_COLOR->PALETTES[c.echoPalette];case ECHO_GHOSTS->Integer.toString(c.echoGhosts);
         case ECHO_LENGTH->String.format(Locale.ROOT,"%.2f с",c.echoLength);case ECHO_INTENSITY->Math.round(c.echoIntensity*100)+"%";
-        case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
         case RUST_GEOMETRY->c.rustGeometry?"Rust":"Java";
+        case OPT_LIGHT->c.optimization?"Вкл.":"Выкл."; case OPT_PRESET->Optimizer.NAMES[c.optimizationPreset];
         case OPT_APPLY->"Применить"; case OPT_RESTORE->c.optimizationBackup==null?"Нет копии":"Восстановить";
         case MUSIC_OPEN->"Открыть"; case MUSIC_DISCONNECT->"Отключить";case MUSIC_VOLUME->c.musicVolume+"%";
         case COLOR_EDIT->"Открыть";
@@ -255,6 +283,7 @@ public final class TerminalScreen extends Screen {
     }
     private void selectFeature(Feature selected){
         dragging=null;draggingWindow=false;scrollOffset=0;resetDeadline=0;
+        lastAdjustment=0;
         lastFeature=feature=selected;VisualFX.config.save();
     }
     private void drawPreview(GuiGraphics g,Config c,int x,int y,int w,int h,double time){
@@ -279,6 +308,24 @@ public final class TerminalScreen extends Screen {
                 for(int i=0;i<Math.min(lines.size(),(h-28)/11);i++)g.drawString(font,lines.get(i),x+6,y+27+i*11,tint(0xA4B6C3,1),false);
             }
             case TARGET_ESP,HIT_EFFECT,DEATH_EFFECT,NEON_ECHO->preview.draw(g,font,x,y,w,h,c,time,visibility,feature==Feature.DEATH_EFFECT,feature==Feature.HIT_EFFECT,feature==Feature.NEON_ECHO);
+            case ITEM_PHYSICS->fitted(g, "Анимация выпавших предметов", x+6,y+8,0x39FF14,w-12);
+            case ITEM_SCROLLER->fitted(g, "Shift + колесо над стопкой", x+6,y+8,0x39FF14,w-12);
+            case SEASONAL->fitted(g, SEASONS[c.seasonParticles], x+6,y+8,c.seasonParticles==2?0xE9A13D:0xDEF6FF,w-12);
+            case PRESENCE->{
+                fitted(g, Presence.status(), x+6,y+8,0x39FF75,w-12);
+                var connection=minecraft.getConnection();
+                if(connection!=null) {
+                    int row=y+24;
+                    for(var other:connection.getOnlinePlayers()) {
+                        var activity=Presence.activity(other.getProfile().id());
+                        if(activity==null)continue;
+                        if(row+10>=y+h)break;
+                        String name=font.plainSubstrByWidth(other.getProfile().name(),Math.max(0,w-22));
+                        g.drawString(font,Presence.decorate(Component.literal(name),other.getProfile().id()),x+6,row,tint(0xCDEBD5,1),false);
+                        row+=12;
+                    }
+                }
+            }
             case MENU->{
                 text(g,"Настройки меню",x+6,y+8,0x39FF14);
                 var lines=font.split(Component.literal("Перетаскивайте окно за заголовок. Размер — ползунком слева. Right Shift — закрыть меню."),w-12);
@@ -316,6 +363,7 @@ public final class TerminalScreen extends Screen {
                 VisualFX.config.save();minecraft.setScreen(new ColorEditorScreen(this,target));return true;
             }
             if(s==Setting.MUSIC_OPEN){VisualFX.config.save();minecraft.setScreen(new SoundCloudScreen(this));return true;}
+            if(s==Setting.PRESENCE_OPEN){minecraft.setScreen(new PresenceScreen(this));return true;}
             if(s==Setting.HUD_POSITION||s==Setting.WATERMARK_POSITION||s==Setting.EFFECT_STATUS_POSITION){
                 HudEditorScreen.Panel panel=s==Setting.EFFECT_STATUS_POSITION?HudEditorScreen.Panel.EFFECT_STATUS:
                     s==Setting.WATERMARK_POSITION?HudEditorScreen.Panel.WATERMARK:HudEditorScreen.Panel.TARGET_HUD;
@@ -326,15 +374,24 @@ public final class TerminalScreen extends Screen {
             if(s.slider()){dragging=s;slider(s,x);}
             else switch(s){
                 case MUSIC_DISCONNECT->SoundCloudPlayer.INSTANCE.stop();
+                case ITEM_PHYSICS->c.itemPhysics=!c.itemPhysics;
+                case ITEM_SCROLLER->c.itemScroller=!c.itemScroller;
+                case SEASON_MODE->c.seasonParticles=(c.seasonParticles+1)%SEASONS.length;
+                case PRESENCE_ENABLED->c.presenceEnabled=!c.presenceEnabled;
+                case PRESENCE_SHARE->c.presenceShareMenu=!c.presenceShareMenu;
                 case MENU_CENTER->{c.menuX=.5;c.menuY=.5;}
-                case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
                 case RUST_GEOMETRY->{
-                    c.rustGeometry=!c.rustGeometry;
-                    if(c.rustGeometry&&!RustGeometry.available()){
+                    if(c.rustGeometry){
                         c.rustGeometry=false;
+                        optimizationMessage="Расчёт геометрии на Java.";
+                    }else if(RustGeometry.available()){
+                        c.rustGeometry=true;
+                        optimizationMessage="Расчёт геометрии на Rust.";
+                    }else{
                         optimizationMessage="Rust недоступен. Используется Java.";
-                    }else optimizationMessage="Расчёт геометрии: "+(c.rustGeometry?"Rust":"Java");
+                    }
                 }
+                case OPT_LIGHT->{c.optimization=!c.optimization;optimizationMessage="";}
                 case OPT_PRESET->{c.optimizationPreset=(c.optimizationPreset+1)%3;optimizationMessage="";}
                 case OPT_APPLY->optimizationMessage=Optimizer.apply();
                 case OPT_RESTORE->optimizationMessage=Optimizer.restore();
@@ -353,9 +410,10 @@ public final class TerminalScreen extends Screen {
                 case HIT_MODE->c.hitMode=(c.hitMode+1)%HitEffects.NAMES.length;
                 case MODE->c.mode=(c.mode+1)%Effects.MODES.length;
                 case ANIMATIONS->c.menuAnimations=!c.menuAnimations;
-                case RESET->{if(System.nanoTime()<resetDeadline){Config defaults=new Config();defaults.optimizationBackup=c.optimizationBackup;VisualFX.config=defaults;resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}
+                case RESET->{if(System.nanoTime()<resetDeadline){Config defaults=new Config();defaults.optimizationBackup=c.optimizationBackup;defaults.cynthiaServerInitialized=c.cynthiaServerInitialized;VisualFX.config=defaults;resetDeadline=0;}else resetDeadline=System.nanoTime()+3_000_000_000L;}
                 default->{}
             }
+            lastAdjustment=System.nanoTime()+2_000_000_000L;
             VisualFX.config.save();return true;
         }
         return false;

@@ -2,6 +2,7 @@ package dev.visualfx;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -20,8 +21,15 @@ public final class VisualFX implements ClientModInitializer {
     private final TargetHud hud=new TargetHud();
     private final Watermark watermark=new Watermark();
     private final EffectStatus effectStatus=new EffectStatus();
+    private final SeasonalParticles seasons = new SeasonalParticles();
+    private final Presence presence = new Presence();
     @Override public void onInitializeClient() {
         config=Config.load();
+        FeaturedServer.register();
+        ClientPlayConnectionEvents.JOIN.register((listener, sender, client) ->
+            client.execute(() -> presence.joined(listener, client)));
+        ClientPlayConnectionEvents.DISCONNECT.register((listener, client) ->
+            client.execute(() -> presence.disconnected(listener)));
         net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.CLIENT_STOPPING.register(client->SoundCloudPlayer.INSTANCE.stop());
         net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.attachElementBefore(
             net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements.CHAT,
@@ -38,16 +46,22 @@ public final class VisualFX implements ClientModInitializer {
                 if(client.screen instanceof ColorEditorScreen color) color.onClose();
                 else if(client.screen instanceof SoundCloudScreen music) music.onClose();
                 else if(client.screen instanceof HudEditorScreen e) e.onClose();
+                else if(client.screen instanceof PresenceScreen link) link.onClose();
                 else if(client.screen instanceof TerminalScreen s) s.onClose();
                 else if(client.screen==null) client.setScreen(new TerminalScreen());
             }
             held=down; TARGET.tick(client);hud.tick(client);effectStatus.tick(client);
+            seasons.tick(client);
+            presence.tick(client);
         });
         WorldRenderEvents.END_EXTRACTION.register(context -> {
             TARGET.extract(Minecraft.getInstance());
             hud.project(context);
         });
-        WorldRenderEvents.AFTER_ENTITIES.register(context -> TARGET.render(context));
+        WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+            TARGET.render(context);
+            seasons.render(context, Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
+        });
         AttackEntityCallback.EVENT.register((player,world,hand,entity,hit) -> {
             if(world.isClientSide() && player==Minecraft.getInstance().player && entity instanceof Player targetPlayer && (config.hitEffect||config.neonEcho)) TARGET.hit(targetPlayer);
             return InteractionResult.PASS;
