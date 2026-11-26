@@ -1,136 +1,291 @@
 package dev.visualfx;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import java.awt.Color;
-import net.minecraft.client.gui.screens.Screen;
+import java.util.Locale;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.AbstractSliderButton;
-import net.minecraft.network.chat.Component;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
-/** Draft-based RGB editor: changes reach live settings only after Apply. */
+/** Edits a copy so a palette change can be previewed and cancelled. */
 final class ColorEditorScreen extends Screen {
+    private static final int[] PRESETS = {0x39FF14, 0xFF00CC, 0x00F5FF, 0xB026FF, 0xFFFFFF, 0};
+    private static final String[] PRESET_NAMES = {"Зелёный", "Розовый", "Голубой", "Фиолетовый", "Белый", "Чёрный"};
+    private static final String DEFAULT_HINT = "Выберите цвет и нажмите «Применить».";
+
     private final Screen parent;
     private final ColorTarget target;
     private final ColorStyle draft;
-    private int mode,endpoint;
+    private final float[] hsb = new float[3];
+    private int mode, endpoint;
     private boolean syncing;
     private EditBox hex;
-    private SpectrumSlider spectrum;
-    private final float[] hsb = new float[3];
-    private Button startButton,endButton,solidButton,gradientButton;
+    private ColorSlider spectrum, brightness;
+    private Button startButton, endButton, solidButton, gradientButton;
     private AbstractSliderButton speedSlider;
-    private int left,top,panelWidth;
+    private int left, top, panelWidth, panelHeight, pickerSize, controlsX, controlsWidth;
     private int frameAccent;
-    private String message="HEX: #RRGGBB. Применить — сохранить; Escape — отменить.";
-    ColorEditorScreen(Screen parent,ColorTarget target){
-        super(Component.literal("Редактор цветов"));this.parent=parent;this.target=target;
-        Config c=VisualFX.config;draft=target.style(c).copy();int palette=target.palette(c);
-        mode=palette==4||palette==6?6:5;
-        if(palette<4)draft.start=ColorStyle.PRESETS[palette];
+    private String message = DEFAULT_HINT;
+
+    ColorEditorScreen(Screen parent, ColorTarget target) {
+        super(Component.literal("Редактор цветов"));
+        this.parent = parent;
+        this.target = target;
+        Config config = VisualFX.config;
+        draft = target.style(config).copy();
+        int palette = target.palette(config);
+        mode = palette == 4 || palette == 6 ? 6 : 5;
+        if (palette < 4) draft.start = ColorStyle.PRESETS[palette];
     }
-    @Override public boolean isPauseScreen(){return false;}
-    @Override protected void init(){
-        panelWidth=Math.min(500,width-16);left=(width-panelWidth)/2;top=Math.max(4,(height-228)/2);
-        int half=(panelWidth-24)/2;
-        solidButton=button("Один цвет",left+10,top+60,half,20,()->{mode=5;endpoint=0;syncWidgets();});
-        gradientButton=button("Свой градиент",left+14+half,top+60,half,20,()->{mode=6;syncWidgets();});
-        startButton=button("Начало",left+10,top+84,half,20,()->{endpoint=0;syncWidgets();});
-        endButton=button("Конец",left+14+half,top+84,half,20,()->{endpoint=1;syncWidgets();});
-        hex=addRenderableWidget(new EditBox(font,left+10,top+108,panelWidth-20,20,Component.literal("HEX-код цвета")));
-        hex.setMaxLength(7);hex.setResponder(value->{
-            if(syncing)return;
-            try{setRgb(ColorStyle.parseHex(value));spectrum.sync();message="Цвет обновлён в предпросмотре.";}
-            catch(IllegalArgumentException e){message=e.getMessage();}
-        });
-        spectrum=addRenderableWidget(new SpectrumSlider(left+10,top+132,panelWidth-20));
-        speedSlider=addRenderableWidget(new AbstractSliderButton(left+10,top+154,panelWidth-20,18,Component.literal("Скорость"),(draft.speed-.1)/1.9){
-            @Override protected void updateMessage(){setMessage(Component.literal(String.format(java.util.Locale.ROOT,"Скорость градиента: %.2f",.1+value*1.9)));}
-            @Override protected void applyValue(){draft.speed=.1+value*1.9;}
-        });
-        int[] colors={0x39FF14,0xFF00CC,0x00F5FF,0xB026FF,0xFFFFFF,0};
-        String[] names={"Зелёный","Розовый","Голубой","Фиолет.","Белый","Чёрный"};
-        int presetWidth=(panelWidth-20)/6;
-        for(int i=0;i<colors.length;i++){final int color=colors[i];button(names[i],left+10+i*presetWidth,top+176,presetWidth-2,16,()->{setRgb(color);syncWidgets();});}
-        button("Отмена",left+10,top+196,half,20,this::onClose);
-        button("Применить",left+14+half,top+196,half,20,()->{
-            try{setRgb(ColorStyle.parseHex(hex.getValue()));}
-            catch(IllegalArgumentException e){message=e.getMessage();return;}
-            Config c=VisualFX.config;int beforePalette=target.palette(c);ColorStyle before=target.style(c).copy();
-            target.apply(c,mode,draft);
-            if(!c.saveChecked()){target.apply(c,beforePalette,before);message="Не удалось сохранить конфигурацию. Попробуйте ещё раз.";return;}
-            minecraft.gui.setScreen(parent);
-        });
-        syncWidgets();setInitialFocus(hex);
-    }
-    private Button button(String title,int x,int y,int w,int h,Runnable action){return addRenderableWidget(Button.builder(Component.literal(title),b->action.run()).bounds(x,y,w,h).build());}
-    private int rgb(){return endpoint==0?draft.start:draft.end;}
-    private void setRgb(int value){if(endpoint==0)draft.start=value;else draft.end=value;}
-    private void syncWidgets(){
-        syncing=true;hex.setValue(ColorStyle.hex(rgb()));syncing=false;spectrum.sync();
-        startButton.active=endButton.active=speedSlider.active=mode==6;
-        startButton.setMessage(Component.literal(endpoint==0?"[ Начало ]":"Начало"));
-        endButton.setMessage(Component.literal(endpoint==1?"[ Конец ]":"Конец"));
-        solidButton.setMessage(Component.literal(mode==5?"[ Один цвет ]":"Один цвет"));
-        gradientButton.setMessage(Component.literal(mode==6?"[ Свой градиент ]":"Свой градиент"));
-        speedSlider.setMessage(Component.literal(String.format(java.util.Locale.ROOT,"Скорость градиента: %.2f",draft.speed)));
-        message="HEX: #RRGGBB. Применить — сохранить; Escape — отменить.";
-    }
-    private final class SpectrumSlider extends AbstractSliderButton {
-        private static final Component LABEL = Component.literal("Оттенок");
-        SpectrumSlider(int x, int y, int width) {
-            super(x, y, width, 18, LABEL, 0);
-            sync();
-        }
-        void sync() {
-            int color = rgb();
-            Color.RGBtoHSB((color >> 16) & 255, (color >> 8) & 255, color & 255, hsb);
-            value = hsb[0];
-        }
-        @Override public void onClick(MouseButtonEvent event, boolean doubleClick) {
-            super.onClick(event, doubleClick);
-            applyValue();
-        }
-        @Override protected void updateMessage() {}
-        @Override protected void applyValue() {
-            setRgb(Color.HSBtoRGB((float) value, 1, 1) & 0xFFFFFF);
-            syncing = true;
-            hex.setValue(ColorStyle.hex(rgb()));
-            syncing = false;
-            ColorEditorScreen.this.message = "Нажмите «Применить», чтобы сохранить цвет.";
-        }
-        @Override public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-            int x = getX(), y = getY(), width = getWidth();
-            g.fill(x, y, x + width, y + 18, 0xFF17232E);
-            int length = width - 8;
-            for (int i = 0; i < length; i += 2) {
-                int color = Color.HSBtoRGB(i / (float) Math.max(1, length - 2), 1, 1);
-                g.fill(x + 4 + i, y + 4, x + 4 + Math.min(length, i + 2), y + 14, color);
+
+    @Override public boolean isPauseScreen() { return false; }
+
+    @Override protected void init() {
+        panelWidth = Math.min(418, width - 12);
+        pickerSize = Math.clamp(Math.min(panelWidth / 3, height - 111), 32, 132);
+        panelHeight = Math.max(191, pickerSize + 101);
+        left = (width - panelWidth) / 2;
+        top = Math.max(3, (height - panelHeight) / 2);
+        controlsX = left + 23 + pickerSize;
+        controlsWidth = left + panelWidth - 11 - controlsX;
+        int pickerX = left + 11, pickerY = top + 27;
+        int half = (controlsWidth - 4) / 2;
+
+        addRenderableWidget(new ColorSquare(pickerX, pickerY, pickerSize));
+        spectrum = addRenderableWidget(new ColorSlider(pickerX, pickerY + pickerSize + 6, pickerSize, true));
+        brightness = addRenderableWidget(new ColorSlider(pickerX, pickerY + pickerSize + 23, pickerSize, false));
+
+        hex = addRenderableWidget(new EditBox(font, controlsX, top + 47, controlsWidth, 18, Component.literal("HEX-код цвета")));
+        hex.setMaxLength(7);
+        hex.setResponder(value -> {
+            if (syncing) return;
+            try {
+                setRgb(ColorStyle.parseHex(value));
+                syncPicker();
+                message = DEFAULT_HINT;
+            } catch (IllegalArgumentException error) {
+                message = error.getMessage();
             }
-            int knob = x + 4 + (int) Math.round(value * length);
-            g.fill(knob - 3, y + 1, knob + 3, y + 17, 0xFF0A1016);
-            g.outline(knob - 3, y + 1, 6, 16, 0xFFFFFFFF);
-            if (isFocused() || isHovered()) g.outline(x, y, width, 18, frameAccent);
+        });
+        solidButton = button("Один цвет", controlsX, top + 69, half, 18, () -> { mode = 5; endpoint = 0; syncWidgets(); });
+        gradientButton = button("Градиент", controlsX + half + 4, top + 69, half, 18, () -> { mode = 6; syncWidgets(); });
+        startButton = button("Начало", controlsX, top + 91, half, 18, () -> { endpoint = 0; syncWidgets(); });
+        endButton = button("Конец", controlsX + half + 4, top + 91, half, 18, () -> { endpoint = 1; syncWidgets(); });
+        speedSlider = addRenderableWidget(new AbstractSliderButton(controlsX, top + 113, controlsWidth, 18,
+            Component.literal("Скорость"), (draft.speed - .1) / 1.9) {
+            @Override protected void updateMessage() { setMessage(speedLabel()); }
+            @Override protected void applyValue() { draft.speed = .1 + value * 1.9; }
+        });
+        int cell = controlsWidth / PRESETS.length;
+        for (int i = 0; i < PRESETS.length; i++) {
+            int color = PRESETS[i];
+            Button preset = Button.builder(Component.literal("■").withColor(color), b -> {
+                setRgb(color);
+                syncWidgets();
+            }).bounds(controlsX + i * cell, top + 136, cell - 2, 16)
+              .tooltip(Tooltip.create(Component.literal(PRESET_NAMES[i]))).build();
+            addRenderableWidget(preset);
+        }
+        int actionWidth = (panelWidth - 26) / 2;
+        int actionsY = top + panelHeight - 22;
+        button("Отмена", left + 11, actionsY, actionWidth, 17, this::onClose);
+        button("Применить", left + 15 + actionWidth, actionsY, actionWidth, 17, this::apply);
+        syncWidgets();
+    }
+
+    private void apply() {
+        try {
+            setRgb(ColorStyle.parseHex(hex.getValue()));
+        } catch (IllegalArgumentException error) {
+            message = error.getMessage();
+            return;
+        }
+        Config config = VisualFX.config;
+        int beforePalette = target.palette(config);
+        ColorStyle before = target.style(config).copy();
+        target.apply(config, mode, draft);
+        if (!config.saveChecked()) {
+            target.apply(config, beforePalette, before);
+            message = "Не удалось сохранить цвет. Попробуйте ещё раз.";
+            return;
+        }
+        minecraft.gui.setScreen(parent);
+    }
+
+    private Button button(String label, int x, int y, int width, int height, Runnable action) {
+        return addRenderableWidget(Button.builder(Component.literal(label), button -> action.run())
+            .bounds(x, y, width, height).build());
+    }
+
+    private Component speedLabel() {
+        return Component.literal(String.format(Locale.ROOT, "Скорость: %.2f", draft.speed));
+    }
+
+    private int rgb() { return endpoint == 0 ? draft.start : draft.end; }
+
+    private void setRgb(int value) {
+        if (endpoint == 0) draft.start = value;
+        else draft.end = value;
+    }
+
+    private void syncHex() {
+        syncing = true;
+        hex.setValue(ColorStyle.hex(rgb()));
+        syncing = false;
+    }
+
+    private void syncPicker() {
+        int color = rgb();
+        Color.RGBtoHSB(color >> 16 & 255, color >> 8 & 255, color & 255, hsb);
+        spectrum.sync();
+        brightness.sync();
+    }
+
+    private void updateFromPicker() {
+        setRgb(Color.HSBtoRGB(hsb[0], hsb[1], hsb[2]) & 0xFFFFFF);
+        syncHex();
+        spectrum.sync();
+        brightness.sync();
+        message = DEFAULT_HINT;
+    }
+
+    private void syncWidgets() {
+        syncHex();
+        syncPicker();
+        startButton.active = endButton.active = speedSlider.active = mode == 6;
+        startButton.setMessage(Component.literal(endpoint == 0 ? "[ Начало ]" : "Начало"));
+        endButton.setMessage(Component.literal(endpoint == 1 ? "[ Конец ]" : "Конец"));
+        solidButton.setMessage(Component.literal(mode == 5 ? "[ Один цвет ]" : "Один цвет"));
+        gradientButton.setMessage(Component.literal(mode == 6 ? "[ Градиент ]" : "Градиент"));
+        speedSlider.setMessage(speedLabel());
+        message = DEFAULT_HINT;
+    }
+
+    /** Rotates the GUI's vertical gradient primitive into a horizontal one. */
+    private static void gradientAcross(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int from, int to) {
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, y + height).rotate(-(float) Math.PI / 2);
+        graphics.fillGradient(0, 0, height, width, from, to);
+        graphics.pose().popMatrix();
+    }
+
+    private final class ColorSquare extends AbstractWidget {
+        ColorSquare(int x, int y, int size) {
+            super(x, y, size, size, Component.literal("Насыщенность и яркость"));
+            setTooltip(Tooltip.create(getMessage()));
+        }
+
+        private void pick(MouseButtonEvent event) {
+            hsb[1] = (float) Math.clamp((event.x() - getX()) / (getWidth() - 1), 0, 1);
+            hsb[2] = 1 - (float) Math.clamp((event.y() - getY()) / (getHeight() - 1), 0, 1);
+            updateFromPicker();
+        }
+
+        @Override public void onClick(MouseButtonEvent event, boolean doubleClick) { pick(event); }
+        @Override protected void onDrag(MouseButtonEvent event, double dx, double dy) { pick(event); }
+
+        @Override public boolean keyPressed(KeyEvent event) {
+            switch (event.key()) {
+                case InputConstants.KEY_LEFT -> hsb[1] = Math.max(0, hsb[1] - .02f);
+                case InputConstants.KEY_RIGHT -> hsb[1] = Math.min(1, hsb[1] + .02f);
+                case InputConstants.KEY_DOWN -> hsb[2] = Math.max(0, hsb[2] - .02f);
+                case InputConstants.KEY_UP -> hsb[2] = Math.min(1, hsb[2] + .02f);
+                default -> { return super.keyPressed(event); }
+            }
+            updateFromPicker();
+            return true;
+        }
+
+        @Override protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
+        }
+
+        @Override public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int x = getX(), y = getY(), size = getWidth();
+            gradientAcross(graphics, x, y, size, size, 0xFFFFFFFF, Color.HSBtoRGB(hsb[0], 1, 1));
+            graphics.fillGradient(x, y, x + size, y + size, 0x00000000, 0xFF000000);
+            graphics.outline(x - 1, y - 1, size + 2, size + 2, isFocused() ? frameAccent : 0xFF58636C);
+            int selectedX = x + Math.round(hsb[1] * (size - 1));
+            int selectedY = y + Math.round((1 - hsb[2]) * (size - 1));
+            graphics.outline(selectedX - 4, selectedY - 4, 9, 9, 0xFA070A0D);
+            graphics.outline(selectedX - 3, selectedY - 3, 7, 7, 0xFFFFFFFF);
         }
     }
-    @Override public void extractBackground(GuiGraphicsExtractor g,int x,int y,float delta){}
-    @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        int theme = target == ColorTarget.MENU ? draft.sample(mode, System.nanoTime() / 1e9 * .45) : MenuTheme.current();
-        frameAccent = 0xFF000000 | MenuTheme.accent(theme);
-        g.fill(0,0,width,height,0xBA000000 | MenuTheme.surface(0x020409,theme,.035));
-        g.fill(left,top,left+panelWidth,top+228,0xF8000000 | MenuTheme.surface(0x070B10,theme,.10));
-        g.outline(left,top,panelWidth,228,frameAccent);
-        g.text(font,"Редактор цветов / "+target.title,left+10,top+9,frameAccent,false);
-        int x=left+10,y=top+26,w=panelWidth-20;
-        if(mode==6){for(int i=0;i<w;i+=3)g.fill(x+i,y,x+Math.min(w,i+3),y+30,0xFF000000|ColorStyle.mix(draft.start,draft.end,i/(double)Math.max(1,w-3)));}
-        else g.fill(x,y,x+w,y+30,0xFF000000|draft.start);
-        int animated=draft.sample(mode,System.nanoTime()/1e9*.45);
-        g.fill(x+w-28,y+3,x+w-3,y+27,0xFF000000|animated);g.outline(x+w-29,y+2,27,26,0xFFFFFFFF);
-        String hint=message;if(font.width(hint)>panelWidth-20)hint=font.plainSubstrByWidth(hint,panelWidth-30)+"…";
-        g.text(font,hint,left+10,top+218,0xFF91A5AC,false);
-        if(my>=top+216&&my<top+228)g.setTooltipForNextFrame(Component.literal(message),mx,my);
-        super.extractRenderState(g,mx,my,delta);
+
+    private final class ColorSlider extends AbstractSliderButton {
+        private final boolean hue;
+
+        ColorSlider(int x, int y, int width, boolean hue) {
+            super(x, y, width, 13, Component.literal(hue ? "Оттенок" : "Яркость"), 0);
+            this.hue = hue;
+            setTooltip(Tooltip.create(getMessage()));
+        }
+
+        void sync() { value = hsb[hue ? 0 : 2]; }
+        @Override protected void updateMessage() {}
+
+        @Override protected void applyValue() {
+            hsb[hue ? 0 : 2] = (float) value;
+            updateFromPicker();
+        }
+
+        @Override public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int x = getX(), y = getY(), length = getWidth() - 8;
+            graphics.fill(x, y, x + getWidth(), y + 13, 0xFF17212A);
+            if (hue) {
+                for (int i = 0; i < 6; i++) {
+                    int start = x + 4 + i * length / 6;
+                    int end = x + 4 + (i + 1) * length / 6;
+                    gradientAcross(graphics, start, y + 3, end - start, 7,
+                        Color.HSBtoRGB(i / 6f, 1, 1), Color.HSBtoRGB((i + 1) / 6f, 1, 1));
+                }
+            } else {
+                gradientAcross(graphics, x + 4, y + 3, length, 7, 0xFF000000, Color.HSBtoRGB(hsb[0], hsb[1], 1));
+            }
+            int marker = x + 4 + (int) Math.round(value * length);
+            graphics.outline(marker - 3, y + 1, 7, 11, 0xFF06090C);
+            graphics.outline(marker - 2, y + 2, 5, 9, 0xFFFFFFFF);
+            if (isFocused()) graphics.outline(x, y, getWidth(), 13, frameAccent);
+        }
     }
-    @Override public void onClose(){minecraft.gui.setScreen(parent);}
+
+    @Override public void extractBackground(GuiGraphicsExtractor graphics, int x, int y, float delta) {}
+
+    @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        double phase = System.nanoTime() / 1e9 * .45;
+        int animated = draft.sample(mode, phase);
+        int theme = target == ColorTarget.MENU ? animated : MenuTheme.current();
+        frameAccent = 0xFF000000 | MenuTheme.accent(theme);
+        graphics.fill(0, 0, width, height, 0xBA000000 | MenuTheme.surface(0x020409, theme, .035));
+        graphics.fill(left, top, left + panelWidth, top + panelHeight, 0xFA000000 | MenuTheme.surface(0x10141B, theme, .09));
+        graphics.outline(left, top, panelWidth, panelHeight, frameAccent);
+        graphics.text(font, "Редактор цветов / " + target.title, left + 11, top + 9, frameAccent, false);
+
+        int y = top + 27, previewWidth = controlsWidth - 22;
+        gradientAcross(graphics, controlsX, y, previewWidth, 14, 0xFF000000 | draft.start,
+            0xFF000000 | (mode == 6 ? draft.end : draft.start));
+        graphics.outline(controlsX, y, previewWidth, 14, 0xFF63717A);
+        int swatchX = controlsX + controlsWidth - 18;
+        graphics.fill(swatchX, y, swatchX + 18, y + 14, 0xFF000000 | rgb());
+        graphics.outline(swatchX, y, 18, 14, 0xFFD9E1E7);
+
+        int hintY = top + panelHeight - 34;
+        String hint = message;
+        if (font.width(hint) > panelWidth - 22) hint = font.plainSubstrByWidth(hint, panelWidth - 30) + "…";
+        graphics.text(font, hint, left + 11, hintY, 0xFF91A5AC, false);
+        if (mouseY >= hintY - 2 && mouseY < hintY + 9) {
+            graphics.setTooltipForNextFrame(Component.literal(message), mouseX, mouseY);
+        }
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+    @Override public void onClose() { minecraft.gui.setScreen(parent); }
 }
